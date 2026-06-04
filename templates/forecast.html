@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ru" id="html-root">
+<head>
+<meta charset="UTF-8">
+<script>!function(){try{var t=localStorage.getItem('hulkfit-theme');if(t==='light')document.getElementById('html-root').setAttribute('data-theme','light')}catch(e){}}()</script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Прогноз выручки — {{ forecast.target_month_display }} — HULK.FIT</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;600&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --dark:#0a0a0a;--card:#111;--card2:#161616;--border:#222;--border2:#2a2a2a;
+  --text:#e8e8e8;--text-dim:#888;--text-muted:#555;
+  --green:#39FF14;--green-dim:#1db800;--green-glow:rgba(57,255,20,.15);
+  --blue:#6eb3ff;--orange:#ffa94d;--red:#ff6b6b;--purple:#cc99ff;--yellow:#ffdd57;
+}
+[data-theme=light]{
+  --dark:#f0f0f0;--card:#ffffff;--card2:#f8f8f8;--border:#ddd;--border2:#e5e5e5;
+  --text:#111;--text-dim:#555;--text-muted:#999;
+  --green:#00AC00;--green-dim:#008a00;--green-glow:rgba(0,172,0,.15);
+  --blue:#1460c0;--orange:#b06000;--red:#cc2222;--purple:#7733bb;--yellow:#998800;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--dark);color:var(--text);font-family:'Exo 2',sans-serif;
+  min-height:100vh;font-size:14px;line-height:1.5;
+  background-image:radial-gradient(ellipse 70% 40% at 50% 0%,var(--green-glow),transparent);
+}
+
+/* ── Header ── */
+.header{
+  background:linear-gradient(135deg,#0d0d0d,#0f1a0a);
+  border-bottom:2px solid var(--green);
+  padding:14px 40px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);
+}
+[data-theme=light] .header{background:linear-gradient(135deg,#eaf5e5,#f2f2f2);}
+.logo{font-family:'Bebas Neue';font-size:26px;letter-spacing:3px;color:#fff;line-height:1;}
+[data-theme=light] .logo{color:#111;}
+.logo span{color:var(--green);}
+.logo-sub{font-size:9px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.header-link{font-size:12px;color:var(--text-dim);text-decoration:none;letter-spacing:1px;padding:6px 10px;border-radius:6px;}
+.header-link:hover{color:var(--green);}
+.theme-btn{
+  background:rgba(10,10,10,.6);border:1px solid var(--border);color:var(--text-dim);
+  border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+[data-theme=light] .theme-btn{background:rgba(255,255,255,.8);}
+.theme-btn:hover{border-color:var(--green);color:var(--green);}
+
+/* ── Month selector ── */
+.month-bar{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:12px 40px;display:flex;align-items:center;gap:16px;
+}
+.month-label{font-family:'Bebas Neue';font-size:15px;letter-spacing:2px;color:var(--text-dim);}
+.month-select{
+  background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);padding:7px 14px;font-family:'Exo 2',sans-serif;font-size:14px;
+  cursor:pointer;
+}
+.month-select:focus{outline:none;border-color:var(--green);}
+.computed-at{margin-left:auto;font-size:11px;color:var(--text-muted);}
+
+/* ── Layout ── */
+.main{max-width:1280px;margin:0 auto;padding:28px 32px 60px;}
+.section-title{
+  font-family:'Bebas Neue';font-size:18px;letter-spacing:2px;color:var(--text);
+  margin:32px 0 14px;display:flex;align-items:center;gap:10px;
+}
+.section-title::before{content:'';display:block;width:4px;height:20px;background:var(--green);border-radius:2px;}
+
+/* ── KPI row ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.kpi-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:20px 22px;position:relative;overflow:hidden;
+}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kpi-card.green::before{background:var(--green);}
+.kpi-card.blue::before{background:var(--blue);}
+.kpi-card.orange::before{background:var(--orange);}
+.kpi-card.purple::before{background:var(--purple);}
+.kpi-label{font-size:11px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+.kpi-value{font-family:'Bebas Neue';font-size:34px;letter-spacing:1px;color:var(--text);line-height:1;}
+.kpi-unit{font-size:14px;color:var(--text-dim);margin-left:4px;}
+.kpi-sub{font-size:11px;color:var(--text-dim);margin-top:6px;}
+
+/* ── Cards grid ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:22px;
+}
+.card-title{
+  font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;color:var(--text);
+  margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;
+}
+.card-title .badge{
+  font-size:11px;font-family:'Exo 2';font-weight:700;letter-spacing:1px;
+  padding:3px 10px;border-radius:20px;background:var(--green-glow);color:var(--green);
+  border:1px solid rgba(57,255,20,.2);
+}
+[data-theme=light] .card-title .badge{background:rgba(0,172,0,.1);border-color:rgba(0,172,0,.2);}
+
+/* ── Tables ── */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{
+  font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;
+  padding:8px 12px;text-align:left;font-weight:700;border-bottom:1px solid var(--border);
+}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--border2);font-size:13px;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(255,255,255,.02);}
+[data-theme=light] .tbl tr:hover td{background:rgba(0,0,0,.02);}
+.num{text-align:right;font-feature-settings:"tnum";}
+.green-text{color:var(--green);}
+.orange-text{color:var(--orange);}
+.red-text{color:var(--red);}
+.dim{color:var(--text-dim);}
+
+/* ── Revenue bar ── */
+.rev-bar-wrap{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;}
+.rev-bar{height:100%;border-radius:4px;transition:width .6s ease;}
+.rev-bar.green{background:var(--green);}
+.rev-bar.blue{background:var(--blue);}
+.rev-bar.orange{background:var(--orange);}
+
+/* ── Alert ── */
+.alert{
+  border-radius:8px;padding:10px 14px;font-size:12px;margin-top:12px;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.alert.warn{background:rgba(255,169,77,.1);border:1px solid rgba(255,169,77,.25);color:var(--orange);}
+.alert.info{background:rgba(110,179,255,.1);border:1px solid rgba(110,179,255,.2);color:var(--blue);}
+.alert.ok{background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.2);color:var(--green);}
+
+/* ── PT Runway ── */
+.runway-meter{
+  display:flex;align-items:center;gap:12px;margin:10px 0;
+}
+.runway-track{flex:1;height:12px;background:var(--border);border-radius:6px;overflow:hidden;}
+.runway-fill{height:100%;border-radius:6px;transition:width .6s;}
+.runway-fill.safe{background:var(--green);}
+.runway-fill.warn{background:var(--orange);}
+.runway-fill.danger{background:var(--red);}
+.runway-val{font-family:'Bebas Neue';font-size:22px;color:var(--text);white-space:nowrap;}
+
+/* ── Risks ── */
+.risks-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.risk-col{}
+.risk-col-title{
+  font-family:'Bebas Neue';font-size:15px;letter-spacing:2px;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.risk-item{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:9px 12px;border-radius:8px;margin-bottom:8px;font-size:13px;
+}
+.risk-item.down{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.15);}
+.risk-item.up{background:rgba(57,255,20,.06);border:1px solid rgba(57,255,20,.12);}
+.risk-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+
+/* ── AI Comment ── */
+.ai-comment{
+  background:linear-gradient(135deg,rgba(110,179,255,.05),rgba(57,255,20,.05));
+  border:1px solid var(--border);border-left:3px solid var(--blue);
+  border-radius:8px;padding:16px 20px;font-size:14px;color:var(--text);line-height:1.7;
+}
+
+/* ── Chart ── */
+.chart-wrap{position:relative;height:240px;}
+
+/* ── Footer ── */
+footer{
+  border-top:1px solid var(--border);padding:16px 40px;
+  font-size:11px;color:var(--text-muted);
+  display:flex;align-items:center;justify-content:space-between;margin-top:40px;
+}
+
+/* ── Separator ── */
+hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .grid-2,.grid-3,.risks-grid{grid-template-columns:1fr;}
+  .main{padding:20px 16px 40px;}
+  .header,.month-bar{padding-left:16px;padding-right:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <img src="/logo.png" alt="Hulk Fit" style="width:52px;height:52px;object-fit:contain;">
+    <div>
+      <div class="logo">HULK <span>FIT</span></div>
+      <div class="logo-sub">Нижний Тагил · Прогноз выручки</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <a class="header-link" href="/">← Дашборды</a>
+    <button class="theme-btn" onclick="toggleTheme()"><span id="theme-icon">☀</span></button>
+  </div>
+</div>
+
+<!-- Month bar -->
+<div class="month-bar">
+  <span class="month-label">Месяц прогноза:</span>
+  <form method="get" action="/forecast/" style="display:inline">
+    <select class="month-select" name="month" onchange="this.form.submit()">
+      {% for opt in month_options %}
+      <option value="{{ opt.value }}" {% if opt.value == current_month %}selected{% endif %}>
+        {{ opt.label }}
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+  <a href="/forecast/?month={{ current_month }}&refresh=1"
+     style="font-size:11px;color:var(--text-dim);text-decoration:none;margin-left:14px;
+            border:1px solid #333;border-radius:6px;padding:4px 10px;letter-spacing:1px;"
+     title="Сбросить кэш и пересчитать">↺ Пересчитать</a>
+  <span class="computed-at">Рассчитано: {{ forecast.computed_at }}</span>
+</div>
+
+<!-- Main content -->
+<div class="main">
+
+  <!-- KPI row -->
+  <div class="kpi-row">
+    <div class="kpi-card green">
+      <div class="kpi-label">Итого прогноз</div>
+      <div>
+        <span class="kpi-value">{{ "{:,.0f}".format(forecast.total_k).replace(",", " ") }}</span>
+        <span class="kpi-unit">тыс. ₽</span>
+      </div>
+      <div class="kpi-sub">Клубные карты + услуги + отделы</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Продления + реактивация + новые</div>
+      <div>
+        <span class="kpi-value">{{ "{:,.0f}".format(forecast.cards_total_k).replace(",", " ") }}</span>
+        <span class="kpi-unit">тыс. ₽</span>
+      </div>
+      <div class="kpi-sub">{{ "{:.0f}".format(forecast.cards_total_k / forecast.total_k * 100) }}% от итого</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Услуги и отделы</div>
+      <div>
+        <span class="kpi-value">{{ "{:,.0f}".format(forecast.other_total_k).replace(",", " ") }}</span>
+        <span class="kpi-unit">тыс. ₽</span>
+      </div>
+      <div class="kpi-sub">{{ "{:.0f}".format(forecast.other_total_k / forecast.total_k * 100) }}% от итого</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Retention</div>
+      <div>
+        <span class="kpi-value">{{ "{:.1f}".format(forecast.comp_a.renewal_rate * 100) }}</span>
+        <span class="kpi-unit">%</span>
+      </div>
+      <div class="kpi-sub">
+        {{ forecast.comp_a.total_renewals }} из {{ forecast.comp_a.total_expiring }} продлений
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 1: Component A + Component B -->
+  <div class="section-title">Клубные карты</div>
+  <div class="grid-2">
+
+    <!-- Компонент А -->
+    <div class="card">
+      <div class="card-title">
+        Компонент А — Продления
+        <span class="badge">{{ "{:,.0f}".format(forecast.comp_a.revenue_k).replace(",", " ") }} тыс. ₽</span>
+      </div>
+      <table class="tbl">
+        <thead><tr>
+          <th>Группа</th><th>Карт истекает</th><th>Retention</th>
+          <th class="num">Продлений</th><th class="num">Выручка, тыс.</th>
+        </tr></thead>
+        <tbody>
+        {% set chk = forecast.comp_a.avg_check %}
+        {% set chk_b = (8810 / 8937 * chk)|round|int %}
+        {% for cat, label, color in [("А","А — последние 7 дней","green-text"),
+                                      ("В","В — 8-14 дней",""),
+                                      ("С","С — 15+ дней","dim"),
+                                      ("Никогда","Не посещали","")] %}
+        {% set cnt = forecast.comp_a.base[cat] %}
+        {% set ren = forecast.comp_a.renewals_by_cat[cat] %}
+        {% set ret_pct = (ren / cnt * 100) if cnt > 0 else 0 %}
+        <tr>
+          <td class="{{ color }}">{{ label }}</td>
+          <td>{{ cnt }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span>{{ "{:.1f}".format(ret_pct) }}%</span>
+              <div class="rev-bar-wrap" style="width:60px;margin:0;">
+                <div class="rev-bar {% if cat=='А' %}green{% elif cat=='В' %}blue{% else %}orange{% endif %}"
+                     style="width:{{ [ret_pct, 100]|min|round }}%"></div>
+              </div>
+            </div>
+          </td>
+          <td class="num">{{ ren }}</td>
+          <td class="num green-text">{{ "{:.0f}".format(ren * chk / 1000) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="font-weight:700;border-top:2px solid var(--border);">
+            <td colspan="2">Итого</td>
+            <td>{{ "{:.1f}".format(forecast.comp_a.renewal_rate * 100) }}%</td>
+            <td class="num">{{ forecast.comp_a.total_renewals }}</td>
+            <td class="num green-text">{{ forecast.comp_a.revenue_k }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- Средний чек -->
+      <div style="margin-top:14px;font-size:12px;color:var(--text-dim);">
+        Средний чек: <strong style="color:var(--text)">{{ "{:,.0f}".format(forecast.comp_a.avg_check).replace(",", " ") }} ₽</strong>
+        {% if forecast.comp_a.check_deviation_pct > 5 %}
+        <span class="orange-text">(↑{{ forecast.comp_a.check_deviation_pct }}% от константы)</span>
+        {% endif %}
+        · Сезонный коэф.: {{ forecast.season_coeff }}
+      </div>
+      {% if forecast.comp_a.check_note %}
+      <div class="alert warn">
+        <span>⚠</span><span>{{ forecast.comp_a.check_note }}</span>
+      </div>
+      {% endif %}
+      {% if forecast.comp_a.retention_note %}
+      <div class="alert warn">
+        <span>📊</span><span>{{ forecast.comp_a.retention_note }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Компонент Б -->
+    <div class="card">
+      <div class="card-title">
+        Компонент Б — Реактивация
+        <span class="badge">{{ "{:,.0f}".format(forecast.comp_b.revenue_k).replace(",", " ") }} тыс. ₽</span>
+      </div>
+      <table class="tbl">
+        <thead><tr>
+          <th>Бакет (ушли N мес. назад)</th>
+          <th class="num">Пул, чел.</th>
+          <th class="num">Rate, %</th>
+          <th class="num">Вернётся</th>
+        </tr></thead>
+        <tbody>
+        {% set m = forecast.target_month.split('-')[1]|int %}
+        {% set rates = {
+          "1m":    {1:12.1,2:10.4,3:8.4,4:8.6,5:4.8,6:4.5,7:6.8,8:12.4,9:6.6,10:10.1,11:10.3,12:10.5},
+          "2m":    {1:3.5,2:8.0,3:6.9,4:6.7,5:7.0,6:4.5,7:5.5,8:6.5,9:8.6,10:4.7,11:7.7,12:6.1},
+          "3m":    {1:3.8,2:5.7,3:7.0,4:4.9,5:1.8,6:2.5,7:3.7,8:4.2,9:5.1,10:5.3,11:4.2,12:6.6},
+          "4-6m":  {1:2.5,2:4.7,3:3.1,4:2.8,5:2.9,6:1.3,7:2.8,8:4.4,9:4.0,10:5.7,11:4.9,12:3.9},
+          "7-12m": {1:2.5,2:1.9,3:1.8,4:1.0,5:1.4,6:1.7,7:2.5,8:1.4,9:2.0,10:2.1,11:2.3,12:2.9},
+          "13-24m":{1:1.4,2:1.0,3:1.1,4:0.7,5:0.7,6:0.5,7:0.7,8:0.7,9:1.0,10:1.2,11:1.5,12:1.0},
+          "25m+":  {1:0.5,2:0.5,3:0.3,4:0.7,5:0.2,6:0.4,7:0.2,8:0.3,9:0.4,10:0.4,11:0.4,12:0.6}
+        } %}
+        {% for bucket, label in [
+          ("1m","1 мес. назад"),("2m","2 мес."),("3m","3 мес."),
+          ("4-6m","4-6 мес."),("7-12m","7-12 мес."),
+          ("13-24m","13-24 мес."),("25m+","25+ мес.")
+        ] %}
+        {% set pool = forecast.comp_b.pools[bucket] %}
+        {% set ret = forecast.comp_b.returns_by_bucket[bucket] %}
+        <tr {% if bucket=="13-24m" and forecast.comp_b.pool_anomaly %}style="background:rgba(255,169,77,.06)"{% endif %}>
+          <td>{{ label }}{% if bucket=="13-24m" and forecast.comp_b.pool_anomaly %} ⚠{% endif %}</td>
+          <td class="num">{{ "{:,}".format(pool).replace(",", " ") }}</td>
+          <td class="num dim">{{ rates[bucket][m] }}%</td>
+          <td class="num green-text">{{ "{:.1f}".format(ret) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="font-weight:700;border-top:2px solid var(--border);">
+            <td>Итого</td>
+            <td class="num">{{ "{:,}".format(forecast.comp_b.pools.values()|sum).replace(",", " ") }}</td>
+            <td></td>
+            <td class="num green-text">{{ forecast.comp_b.total_returns }}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-dim);">
+        Средний чек реактивации: <strong style="color:var(--text)">8 933 ₽</strong>
+        · Среднемесячный отток: {{ forecast.comp_b.avg_monthly_churn }} чел.
+      </div>
+      {% if forecast.comp_b.pool_note %}
+      <div class="alert warn">
+        <span>🤖</span><span>{{ forecast.comp_b.pool_note }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Компонент В + Other depts + PT -->
+  <div class="grid-3" style="margin-top:20px;">
+
+    <!-- Компонент В -->
+    <div class="card">
+      <div class="card-title">
+        Компонент В — Новые
+        <span class="badge">{{ forecast.comp_c.revenue_k }} тыс. ₽</span>
+      </div>
+      <div style="text-align:center;padding:20px 0;">
+        <div style="font-family:'Bebas Neue';font-size:52px;color:var(--orange);line-height:1;">
+          {{ forecast.comp_c.revenue_k }}
+        </div>
+        <div style="font-size:13px;color:var(--text-dim);margin-top:4px;">тыс. руб.</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">
+          Базовый ориентир для месяца {{ forecast.target_month.split('-')[1]|int }}
+        </div>
+      </div>
+      <div class="alert info">
+        <span>ℹ</span>
+        <span>Базовый ориентир из модели. Уточняется по факту продаж первых 7-10 дней месяца.</span>
+      </div>
+    </div>
+
+    <!-- Прочие отделы -->
+    <div class="card">
+      <div class="card-title">Прочие отделы</div>
+      <table class="tbl">
+        <thead><tr>
+          <th>Отдел</th>
+          <th class="num">Ср. 3 мес., тыс. ₽</th>
+        </tr></thead>
+        <tbody>
+        {% for dept, rev in forecast.depts.items() %}
+        <tr>
+          <td>{{ dept }}</td>
+          <td class="num">{{ rev }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="font-weight:700;border-top:2px solid var(--border);">
+            <td>Итого</td>
+            <td class="num green-text">{{ forecast.other_total_k }}</td>
+          </tr>
+        </tfoot>
+      </table>
+      {% if forecast.pt.warning %}
+      <div class="alert warn" style="margin-top:10px;">
+        <span>⚠</span>
+        <span>Высокий буфер ПТ — фитнес-услуги снижены на 20%</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ПТ-буфер -->
+    <div class="card">
+      <div class="card-title">Буфер ПТ-пакетов</div>
+      <div class="runway-meter">
+        <div class="runway-track">
+          <div class="runway-fill {% if forecast.pt.runway > 1.5 %}warn{% elif forecast.pt.runway > 0.5 %}safe{% else %}danger{% endif %}"
+               style="width:{{ [forecast.pt.runway / 3 * 100, 100]|min|round }}%"></div>
+        </div>
+        <div class="runway-val">{{ forecast.pt.runway }} мес.</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">
+        Остаток сессий: <strong style="color:var(--text)">{{ "{:,}".format(forecast.pt.sessions).replace(",", " ") }}</strong>
+        / потребление: {{ "{:,}".format(forecast.pt.consumption).replace(",", " ") }}/мес.
+      </div>
+      {% if forecast.pt.warning %}
+      <div class="alert warn">
+        <span>⚠</span><span>Runway > 1.5 мес. — снижаем прогноз фитнес на 20%</span>
+      </div>
+      {% else %}
+      <div class="alert ok">
+        <span>✓</span><span>Буфер в норме, снижений не требуется</span>
+      </div>
+      {% endif %}
+      <hr class="sep">
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Топ сегменты</div>
+      {% for row in forecast.pt.rows[:6] %}
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);">
+        <span style="color:var(--text-dim);">{{ row.segment[:32] }}{% if row.segment|length > 32 %}…{% endif %}</span>
+        <span style="color:var(--text);">{{ row.sessions|round|int }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- График -->
+  <div class="section-title">История выручки по отделам</div>
+  <div class="card">
+    <div class="chart-wrap">
+      <canvas id="revenueChart"></canvas>
+    </div>
+  </div>
+
+  <!-- AI Риски -->
+  {% if forecast.risks %}
+  <div class="section-title">Оценка рисков (AI)</div>
+  <div class="risks-grid">
+    <div class="risk-col">
+      <div class="risk-col-title" style="color:var(--red);">
+        <span>▼</span> Риски снижения
+      </div>
+      {% for item in forecast.risks.down %}
+      <div class="risk-item down">
+        <span class="risk-icon">⬇</span>
+        <span>{{ item }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="risk-col">
+      <div class="risk-col-title" style="color:var(--green);">
+        <span>▲</span> Возможности роста
+      </div>
+      {% for item in forecast.risks.up %}
+      <div class="risk-item up">
+        <span class="risk-icon">⬆</span>
+        <span>{{ item }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- AI Комментарий -->
+  {% if forecast.ai_comment %}
+  <div class="section-title">Комментарий для карточки Kaiten</div>
+  <div class="ai-comment">{{ forecast.ai_comment }}</div>
+  {% endif %}
+
+</div><!-- /main -->
+
+<footer>
+  <div>HULK.FIT · dashboard.hulk.fit/forecast</div>
+  <div>Прогноз: {{ forecast.target_month_display }}</div>
+</footer>
+
+<script>
+// ── Theme ──
+function toggleTheme() {
+  const root = document.getElementById('html-root');
+  const icon = document.getElementById('theme-icon');
+  const isLight = root.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    root.removeAttribute('data-theme');
+    icon.textContent = '☀';
+    try { localStorage.setItem('hulkfit-theme','dark'); } catch(e){}
+  } else {
+    root.setAttribute('data-theme','light');
+    icon.textContent = '🌙';
+    try { localStorage.setItem('hulkfit-theme','light'); } catch(e){}
+  }
+  updateChartTheme();
+}
+(function(){
+  try {
+    if (localStorage.getItem('hulkfit-theme')==='light') {
+      document.getElementById('theme-icon').textContent='🌙';
+    }
+  } catch(e){}
+})();
+
+// ── Chart ──
+const chartData = {{ forecast.chart | tojson }};
+
+let revenueChart = null;
+
+function getChartColors() {
+  const light = document.getElementById('html-root').getAttribute('data-theme') === 'light';
+  return {
+    grid: light ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.06)',
+    text: light ? '#555' : '#888',
+  };
+}
+
+function buildChart() {
+  const ctx = document.getElementById('revenueChart').getContext('2d');
+  const c = getChartColors();
+
+  if (revenueChart) revenueChart.destroy();
+
+  revenueChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartData.labels,
+      datasets: chartData.datasets.map(ds => ({
+        label: ds.label,
+        data: ds.data,
+        backgroundColor: ds.backgroundColor + 'cc',
+        borderColor: ds.backgroundColor,
+        borderWidth: 1,
+        borderRadius: 3,
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: c.text, font: { family: "'Exo 2', sans-serif", size: 11 }, padding: 14, boxWidth: 12 }
+        },
+        tooltip: {
+          mode: 'index', intersect: false,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(0)} тыс. ₽`
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { color: c.grid },
+          ticks: { color: c.text, font: { family: "'Exo 2', sans-serif", size: 11 } }
+        },
+        y: {
+          stacked: true,
+          grid: { color: c.grid },
+          ticks: {
+            color: c.text,
+            font: { family: "'Exo 2', sans-serif", size: 11 },
+            callback: v => v >= 1000 ? (v/1000).toFixed(1)+'М' : v
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateChartTheme() {
+  buildChart();
+}
+
+buildChart();
+</script>
+</body>
+</html>
