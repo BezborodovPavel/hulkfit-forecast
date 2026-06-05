@@ -191,6 +191,15 @@ async def forecast_page(
     return templates.TemplateResponse("forecast.html", {"request": request, **ctx})
 
 
+@app.get("/forecast/", response_class=HTMLResponse)
+async def forecast_page_prefixed(
+    request: Request,
+    month: str | None = Query(default=None, description="YYYY-MM"),
+    refresh: int = Query(default=0, description="1 = сбросить кэш"),
+):
+    return await forecast_page(request, month, refresh)
+
+
 @app.get("/health")
 async def health():
     return JSONResponse({"ok": True, "service": "hulkfit-forecast"})
