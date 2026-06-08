@@ -482,7 +482,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       {% endif %}
       <hr class="sep">
       <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Топ сегменты</div>
-      {% for row in forecast.pt.rows[:6] %}
+      {% for row in forecast.pt.rows if 'тренажер' in row.segment.lower() %}
       <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);">
         <span style="color:var(--text-dim);">{{ row.segment[:32] }}{% if row.segment|length > 32 %}…{% endif %}</span>
         <span style="color:var(--text);">{{ row.sessions|round|int }}</span>

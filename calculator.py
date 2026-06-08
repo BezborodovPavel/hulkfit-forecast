@@ -283,7 +283,7 @@ def calc_pt_buffer(pt_rows: list[dict], consumption: float | None = None) -> dic
         "consumption": round(eff_consumption),
         "runway": round(runway, 2),
         "warning": warning,
-        "rows": [r for r in pt_rows if r["sessions"] >= 10],
+        "rows": sorted([r for r in pt_rows if r["sessions"] >= 1 and "тренажер" in r["segment"].lower()], key=lambda r: r["sessions"], reverse=True),
     }
 
 
