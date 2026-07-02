@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import asyncio
+import os
 import json
 import logging
 from datetime import date, datetime
@@ -14,6 +15,7 @@ log = logging.getLogger("queries")
 
 # Задаётся из app.py при старте
 _MCP_URL: str = "https://mcp1c.hulk.fit/mcp/"
+_MCP_TOKEN: str = os.environ.get("MCP_1C_TOKEN", "")
 
 
 def set_mcp_url(url: str) -> None:
@@ -47,7 +49,7 @@ async def _query_1c(query_text: str, params: dict[str, Any]) -> list[dict]:
 
     for attempt in range(_RETRIES + 1):
         try:
-            async with streamablehttp_client(_MCP_URL) as (r, w, _):
+            async with streamablehttp_client(_MCP_URL, headers=({"Authorization": f"Bearer {_MCP_TOKEN}"} if _MCP_TOKEN else {})) as (r, w, _):
                 async with ClientSession(r, w) as sess:
                     await sess.initialize()
                     result = await sess.call_tool("execute_1c_query", {
