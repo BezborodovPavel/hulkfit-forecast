@@ -60,9 +60,22 @@ body{
 .kaiten-btn:hover:not(:disabled){border-color:var(--green);color:var(--green);}
 .kaiten-btn:disabled{opacity:.5;cursor:default;}
 .kaiten-result{font-size:11px;margin-left:10px;}
-.kaiten-result a{color:var(--green);text-decoration:none;}
+.kaiten-result a{color:var(--green);text-decoration:underline;text-underline-offset:3px;font-weight:600;}
 .kaiten-result a:hover{text-decoration:underline;}
 .kaiten-result.err{color:var(--red,#f55);}
+
+.archive-badge{display:inline-flex;align-items:center;gap:6px;margin-left:14px;
+  border:1px solid var(--orange,#f90);border-radius:6px;padding:3px 10px;
+  font-size:11px;letter-spacing:1px;color:var(--orange,#f90);text-transform:uppercase;}
+.fact-table{width:100%;border-collapse:collapse;font-size:13px;}
+.fact-table th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text-dim);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--border2);}
+.fact-table th.num,.fact-table td.num{text-align:right;}
+.fact-table td{padding:8px 10px;border-bottom:1px solid var(--border2);}
+.fact-table tr:last-child td{border-bottom:none;font-weight:700;}
+.delta-pos{color:var(--green);}
+.delta-neg{color:var(--red,#f55);}
+
 
 
 /* ── Month selector ── */
@@ -237,10 +250,10 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       {% endfor %}
     </select>
   </form>
-  <a href="/forecast/?month={{ current_month }}&refresh=1"
+  {% if not is_archive %}<a href="/forecast/?month={{ current_month }}&refresh=1"
      style="font-size:11px;color:var(--text-dim);text-decoration:none;margin-left:14px;
             border:1px solid #333;border-radius:6px;padding:4px 10px;letter-spacing:1px;"
-     title="Сбросить кэш и пересчитать">↺ Пересчитать</a>
+     title="Сбросить кэш и пересчитать">↺ Пересчитать</a>{% endif %}
   <span class="kaiten-box">
     <label for="upliftInput" style="font-size:11px;color:var(--text-dim);">Надбавка</label>
     <input type="number" id="upliftInput" class="kaiten-uplift" value="0" min="-50" max="100" step="1"
@@ -251,7 +264,10 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
     </button>
   </span>
   <span id="kaitenResult" class="kaiten-result"></span>
-  <span class="computed-at">Рассчитано: {{ forecast.computed_at }}</span>
+{% if is_archive %}  <span class="archive-badge" title="Сохранённый снимок, 1С не опрашивается">
+    Архив · снимок {{ saved_at }}
+  </span>
+{% endif %}  <span class="computed-at">Рассчитано: {{ forecast.computed_at }}</span>
 </div>
 
 <!-- Main content -->
@@ -515,6 +531,35 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       {% endfor %}
     </div>
   </div>
+
+  <!-- План против факта (только архив) -->
+  {% if forecast.fact_rows %}
+  <div class="section-title">План против факта</div>
+  <div class="card">
+    <table class="fact-table">
+      <thead>
+        <tr>
+          <th>Направление</th>
+          <th class="num">План, тыс. ₽</th>
+          <th class="num">Факт, тыс. ₽</th>
+          <th class="num">Отклонение</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in forecast.fact_rows %}
+        <tr>
+          <td>{{ row.name }}</td>
+          <td class="num">{{ "{:,.0f}".format(row.plan).replace(",", " ") }}</td>
+          <td class="num">{{ "{:,.0f}".format(row.fact).replace(",", " ") }}</td>
+          <td class="num {% if row.delta is not none %}{{ 'delta-pos' if row.delta >= 0 else 'delta-neg' }}{% endif %}">
+            {% if row.delta is not none %}{{ "%+.1f"|format(row.delta) }}%{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
 
   <!-- График -->
   <div class="section-title">История выручки по отделам</div>

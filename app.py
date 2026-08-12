@@ -28,6 +28,7 @@ import queries
 import calculator as calc
 import ai_helpers as ai
 import kaiten
+import storage
 
 load_dotenv()
 
@@ -57,20 +58,72 @@ def _parse_month(month_str: str | None) -> date:
     return date(today.year, today.month, 1)
 
 
+def _label(month_key: str) -> str:
+    y, m = (int(x) for x in month_key.split("-"))
+    return f"{calc.MONTH_NAMES_RU[m]} {y}"
+
+
 def _month_options(current: date) -> list[dict]:
-    options = []
+    """Архивные месяцы (есть снимок) + текущий + два вперёд."""
+    today = date.today()
+    keys: list[str] = []
+
+    for key in storage.list_months():
+        if storage.is_past(key, today):
+            keys.append(key)
+
     for delta in range(3):
-        m = current.month + delta
-        y = current.year
+        m = today.month + delta
+        y = today.year
         if m > 12:
             m -= 12; y += 1
-        d = date(y, m, 1)
-        options.append({
-            "value": d.strftime("%Y-%m"),
-            "label": f"{calc.MONTH_NAMES_RU[d.month]} {d.year}",
-            "selected": delta == 0,
-        })
-    return options
+        key = date(y, m, 1).strftime("%Y-%m")
+        if key not in keys:
+            keys.append(key)
+
+    current_key = current.strftime("%Y-%m")
+    if current_key not in keys:
+        keys.append(current_key)
+
+    keys.sort()
+    return [
+        {
+            "value": k,
+            "label": _label(k) + (" · архив" if storage.is_past(k, today) else ""),
+            "selected": k == current_key,
+        }
+        for k in keys
+    ]
+
+
+# ── Факт по отделам за завершённый месяц ─────────────────────────────────────
+
+async def _fetch_fact(month_key: str) -> dict[str, Any]:
+    y, m = (int(x) for x in month_key.split("-"))
+    start = date(y, m, 1)
+    end = date(y, m, monthrange(y, m)[1])
+
+    rows = await queries.get_sales_by_dept(start, end)
+
+    cards = 0.0
+    depts: dict[str, float] = {}
+    for row in rows:
+        rm = row.get("month")
+        if not rm or rm.year != y or rm.month != m:
+            continue
+        dept = row.get("dept") or "—"
+        value = (row.get("revenue") or 0) / 1000
+        if "карт" in dept.lower():
+            cards += value
+        else:
+            depts[dept] = depts.get(dept, 0.0) + value
+
+    total = cards + sum(depts.values())
+    return {
+        "cards_total_k": round(cards, 1),
+        "depts": {k: round(v, 1) for k, v in depts.items()},
+        "total_k": round(total, 1),
+    }
 
 
 # ── Простой in-memory кэш (10 мин) ───────────────────────────────────────────
@@ -166,10 +219,18 @@ async def _build_context(target_month: date, refresh: bool = False) -> dict[str,
         pt_consumption=pt_consumption,
     )
 
+    month_key = target_month.strftime("%Y-%m")
+
+    # Снимок: сохраняем первый успешный расчёт месяца, дальше не трогаем
+    if forecast_data.get("other_total_k", 0) > 0:
+        storage.save_if_absent(month_key, forecast_data)
+
     ctx = {
         "forecast": forecast_data,
         "month_options": _month_options(target_month),
-        "current_month": target_month.strftime("%Y-%m"),
+        "current_month": month_key,
+        "is_archive": False,
+        "saved_at": None,
     }
 
     # Не кешируем если отделы пустые (Q3 упал, services=0)
@@ -177,6 +238,62 @@ async def _build_context(target_month: date, refresh: bool = False) -> dict[str,
         _cache_set(cache_key, ctx)
 
     return ctx
+
+
+# ── Архивный контекст (из снимка, без обращения к 1С за прогнозом) ───────────
+
+def _fact_rows(forecast: dict[str, Any], fact: dict[str, Any]) -> list[dict]:
+    rows: list[dict] = []
+
+    def add(name: str, plan: float, actual: float) -> None:
+        delta = (actual - plan) / plan * 100 if plan else None
+        rows.append({
+            "name": name,
+            "plan": round(plan, 1),
+            "fact": round(actual, 1),
+            "delta": round(delta, 1) if delta is not None else None,
+        })
+
+    add("Клубные карты", forecast.get("cards_total_k", 0), fact.get("cards_total_k", 0))
+
+    plan_depts: dict[str, float] = forecast.get("depts", {}) or {}
+    fact_depts: dict[str, float] = fact.get("depts", {}) or {}
+    for name in list(plan_depts) + [d for d in fact_depts if d not in plan_depts]:
+        add(name, plan_depts.get(name, 0), fact_depts.get(name, 0))
+
+    add("Итого", forecast.get("total_k", 0), fact.get("total_k", 0))
+    return rows
+
+
+async def _archive_context(month_key: str) -> dict[str, Any] | None:
+    data = storage.load(month_key)
+    if not data:
+        return None
+
+    forecast = dict(data["forecast"])
+    fact = data.get("fact")
+
+    if not fact:
+        try:
+            fetched = await _fetch_fact(month_key)
+            if fetched.get("total_k", 0) > 0:
+                storage.save_fact(month_key, fetched)
+                fact = fetched
+        except Exception as e:
+            log.warning("Факт за %s не получен: %s", month_key, e)
+
+    if fact:
+        forecast["fact_rows"] = _fact_rows(forecast, fact)
+        forecast["fact_total_k"] = fact.get("total_k", 0)
+
+    y, m = (int(x) for x in month_key.split("-"))
+    return {
+        "forecast": forecast,
+        "month_options": _month_options(date(y, m, 1)),
+        "current_month": month_key,
+        "is_archive": True,
+        "saved_at": data.get("saved_at"),
+    }
 
 
 # ── Основной маршрут ──────────────────────────────────────────────────────────
@@ -188,6 +305,20 @@ async def forecast_page(
     refresh: int = Query(default=0, description="1 = сбросить кэш"),
 ):
     target_month = _parse_month(month)
+    month_key = target_month.strftime("%Y-%m")
+
+    # Прошлый месяц — только сохранённый снимок, пересчёта нет
+    if storage.is_past(month_key):
+        ctx = await _archive_context(month_key)
+        if ctx is None:
+            return HTMLResponse(
+                content=_error_page(
+                    f"Снимок прогноза за {_label(month_key)} не сохранён — "
+                    f"этот месяц не рассчитывался, пока работало сохранение."
+                ),
+                status_code=404,
+            )
+        return templates.TemplateResponse("forecast.html", {"request": request, **ctx})
 
     try:
         ctx = await _build_context(target_month, refresh=bool(refresh))
@@ -197,6 +328,9 @@ async def forecast_page(
             content=_error_page(f"Ошибка получения данных из 1С: {e}"),
             status_code=503,
         )
+
+    # Список месяцев строим при рендере: кэш ctx не должен «замораживать» архив
+    ctx = {**ctx, "month_options": _month_options(target_month)}
 
     return templates.TemplateResponse("forecast.html", {"request": request, **ctx})
 
@@ -235,11 +369,21 @@ async def create_kaiten_card(request: Request):
         uplift = 0.0
     uplift = max(-50.0, min(100.0, uplift))
 
-    try:
-        ctx = await _build_context(target_month)
-    except Exception as e:
-        log.error("Kaiten card: 1C fetch failed: %s", e)
-        return JSONResponse({"ok": False, "error": f"Нет данных из 1С: {e}"}, status_code=503)
+    month_key = target_month.strftime("%Y-%m")
+
+    if storage.is_past(month_key):
+        ctx = await _archive_context(month_key)
+        if ctx is None:
+            return JSONResponse(
+                {"ok": False, "error": f"Снимок за {_label(month_key)} не сохранён"},
+                status_code=404,
+            )
+    else:
+        try:
+            ctx = await _build_context(target_month)
+        except Exception as e:
+            log.error("Kaiten card: 1C fetch failed: %s", e)
+            return JSONResponse({"ok": False, "error": f"Нет данных из 1С: {e}"}, status_code=503)
 
     result = await kaiten.publish(ctx["forecast"], uplift_pct=uplift)
     return JSONResponse(result, status_code=200 if result.get("ok") else 502)
