@@ -50,6 +50,21 @@ body{
 [data-theme=light] .theme-btn{background:rgba(255,255,255,.8);}
 .theme-btn:hover{border-color:var(--green);color:var(--green);}
 
+.kaiten-box{display:inline-flex;align-items:center;gap:6px;margin-left:14px;}
+.kaiten-uplift{width:56px;background:transparent;border:1px solid #333;border-radius:6px;
+  color:var(--text);font-family:inherit;font-size:11px;padding:4px 6px;text-align:right;}
+.kaiten-uplift:focus{outline:none;border-color:var(--green);}
+.kaiten-btn{background:transparent;border:1px solid #333;border-radius:6px;color:var(--text-dim);
+  font-family:inherit;font-size:11px;letter-spacing:1px;padding:4px 10px;cursor:pointer;
+  transition:border-color .15s,color .15s;}
+.kaiten-btn:hover:not(:disabled){border-color:var(--green);color:var(--green);}
+.kaiten-btn:disabled{opacity:.5;cursor:default;}
+.kaiten-result{font-size:11px;margin-left:10px;}
+.kaiten-result a{color:var(--green);text-decoration:none;}
+.kaiten-result a:hover{text-decoration:underline;}
+.kaiten-result.err{color:var(--red,#f55);}
+
+
 /* ── Month selector ── */
 .month-bar{
   background:var(--card);border-bottom:1px solid var(--border);
@@ -226,6 +241,16 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
      style="font-size:11px;color:var(--text-dim);text-decoration:none;margin-left:14px;
             border:1px solid #333;border-radius:6px;padding:4px 10px;letter-spacing:1px;"
      title="Сбросить кэш и пересчитать">↺ Пересчитать</a>
+  <span class="kaiten-box">
+    <label for="upliftInput" style="font-size:11px;color:var(--text-dim);">Надбавка</label>
+    <input type="number" id="upliftInput" class="kaiten-uplift" value="0" min="-50" max="100" step="1"
+           title="Надбавка к прогнозу в процентах, применяется ко всем направлениям">
+    <span style="font-size:11px;color:var(--text-dim);">%</span>
+    <button type="button" id="kaitenBtn" class="kaiten-btn" onclick="createKaitenCard()">
+      + Карточка в Kaiten
+    </button>
+  </span>
+  <span id="kaitenResult" class="kaiten-result"></span>
   <span class="computed-at">Рассчитано: {{ forecast.computed_at }}</span>
 </div>
 
@@ -638,6 +663,41 @@ function updateChartTheme() {
 }
 
 buildChart();
+
+// ── Карточка плана в Kaiten ──
+async function createKaitenCard() {
+  const btn = document.getElementById('kaitenBtn');
+  const out = document.getElementById('kaitenResult');
+  const uplift = parseFloat(document.getElementById('upliftInput').value) || 0;
+  const label = btn.textContent;
+
+  btn.disabled = true;
+  btn.textContent = 'Публикую…';
+  out.className = 'kaiten-result';
+  out.textContent = '';
+
+  try {
+    const resp = await fetch('/forecast/api/kaiten-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month: '{{ current_month }}', uplift_pct: uplift })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      out.innerHTML = (data.updated ? 'Обновлена: ' : 'Создана: ') +
+        '<a href="' + data.url + '" target="_blank" rel="noopener">' + data.title + '</a>';
+    } else {
+      out.className = 'kaiten-result err';
+      out.textContent = 'Ошибка: ' + (data.error || resp.status);
+    }
+  } catch (e) {
+    out.className = 'kaiten-result err';
+    out.textContent = 'Ошибка сети: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
 </script>
 </body>
 </html>

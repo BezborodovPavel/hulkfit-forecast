@@ -2,8 +2,10 @@
 Дашборд прогноза выручки Hulk Fit — FastAPI + Jinja2 SSR.
 
 Маршруты:
-  GET /          → прогноз на текущий или выбранный месяц
-  GET /health    → проверка работоспособности
+  GET  /                  → прогноз на текущий или выбранный месяц
+  GET  /forecast/         → то же (алиас для доступа через под-путь nginx)
+  POST /api/kaiten-card   → создать/обновить карточку плана в Kaiten
+  GET  /health            → проверка работоспособности
 
 Параметры запроса:
   ?month=YYYY-MM → прогнозируемый месяц (по умолчанию — текущий)
@@ -25,6 +27,7 @@ from fastapi.templating import Jinja2Templates
 import queries
 import calculator as calc
 import ai_helpers as ai
+import kaiten
 
 load_dotenv()
 
@@ -90,40 +93,25 @@ def _cache_set(key: str, val: Any) -> None:
     _cache[key] = (time.time(), val)
 
 
-# ── Основной маршрут ──────────────────────────────────────────────────────────
+# ── Сборка контекста прогноза (используется страницей и API Kaiten) ──────────
 
-@app.get("/", response_class=HTMLResponse)
-async def forecast_page(
-    request: Request,
-    month: str | None = Query(default=None, description="YYYY-MM"),
-    refresh: int = Query(default=0, description="1 = сбросить кэш"),
-):
-    target_month = _parse_month(month)
+async def _build_context(target_month: date, refresh: bool = False) -> dict[str, Any]:
+    """Возвращает ctx для шаблона. Бросает исключение при отказе 1С."""
     cache_key = f"forecast:{target_month.strftime('%Y-%m')}"
 
     if not refresh:
         cached = _cache_get(cache_key)
         if cached:
             log.info("Cache hit: %s", cache_key)
-            return templates.TemplateResponse(
-                "forecast.html",
-                {"request": request, **cached},
-            )
+            return cached
     else:
         log.info("Force refresh: %s", cache_key)
         _cache.pop(cache_key, None)
 
     log.info("Building forecast for %s", target_month)
 
-    try:
-        # Параллельные запросы к 1С (6 штук)
-        base, churn_pool, sales, pt_rows, avg_check, pt_consumption = await queries.fetch_all(target_month)
-    except Exception as e:
-        log.error("1C data fetch failed: %s", e)
-        return HTMLResponse(
-            content=_error_page(f"Ошибка получения данных из 1С: {e}"),
-            status_code=503,
-        )
+    # Параллельные запросы к 1С (6 штук)
+    base, churn_pool, sales, pt_rows, avg_check, pt_consumption = await queries.fetch_all(target_month)
 
     m = target_month.month
     month_name = calc.MONTH_NAMES_RU[m]
@@ -188,6 +176,28 @@ async def forecast_page(
     if forecast_data.get("other_total_k", 0) > 0:
         _cache_set(cache_key, ctx)
 
+    return ctx
+
+
+# ── Основной маршрут ──────────────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+async def forecast_page(
+    request: Request,
+    month: str | None = Query(default=None, description="YYYY-MM"),
+    refresh: int = Query(default=0, description="1 = сбросить кэш"),
+):
+    target_month = _parse_month(month)
+
+    try:
+        ctx = await _build_context(target_month, refresh=bool(refresh))
+    except Exception as e:
+        log.error("1C data fetch failed: %s", e)
+        return HTMLResponse(
+            content=_error_page(f"Ошибка получения данных из 1С: {e}"),
+            status_code=503,
+        )
+
     return templates.TemplateResponse("forecast.html", {"request": request, **ctx})
 
 
@@ -198,6 +208,33 @@ async def forecast_page_prefixed(
     refresh: int = Query(default=0, description="1 = сбросить кэш"),
 ):
     return await forecast_page(request, month, refresh)
+
+
+# ── Публикация плана в Kaiten ────────────────────────────────────────────────
+
+@app.post("/api/kaiten-card")
+async def create_kaiten_card(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    target_month = _parse_month(body.get("month"))
+
+    try:
+        uplift = float(body.get("uplift_pct") or 0)
+    except (TypeError, ValueError):
+        uplift = 0.0
+    uplift = max(-50.0, min(100.0, uplift))
+
+    try:
+        ctx = await _build_context(target_month)
+    except Exception as e:
+        log.error("Kaiten card: 1C fetch failed: %s", e)
+        return JSONResponse({"ok": False, "error": f"Нет данных из 1С: {e}"}, status_code=503)
+
+    result = await kaiten.publish(ctx["forecast"], uplift_pct=uplift)
+    return JSONResponse(result, status_code=200 if result.get("ok") else 502)
 
 
 @app.get("/health")
