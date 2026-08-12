@@ -212,6 +212,14 @@ async def forecast_page_prefixed(
 
 # ── Публикация плана в Kaiten ────────────────────────────────────────────────
 
+@app.get("/api/kaiten-card")
+async def get_kaiten_card(month: str | None = Query(default=None, description="YYYY-MM")):
+    """Есть ли уже карточка плана на этот месяц — для ссылки на дашборде."""
+    target_month = _parse_month(month)
+    result = await kaiten.find(target_month.strftime("%Y-%m"))
+    return JSONResponse(result)
+
+
 @app.post("/api/kaiten-card")
 async def create_kaiten_card(request: Request):
     try:

@@ -47,6 +47,13 @@ def _fmt(v: float) -> str:
     return f"{round(v):,}".replace(",", " ")
 
 
+def title_for_month(target_month: str) -> str:
+    """'2026-08' → 'План выручки — Август 2026'"""
+    from calculator import MONTH_NAMES_RU
+    y, m = (int(x) for x in target_month.split("-"))
+    return f"План выручки — {MONTH_NAMES_RU[m]} {y}"
+
+
 def build_title(forecast: dict[str, Any]) -> str:
     return f"План выручки — {forecast['target_month_display']}"
 
@@ -123,6 +130,43 @@ def _headers() -> dict[str, str]:
     }
 
 
+async def _find_card_id(client: httpx.AsyncClient, title: str) -> int | None:
+    """Ищет активную карточку с точно таким заголовком на доске."""
+    r = await client.get(
+        f"{API_URL}/cards",
+        headers=_headers(),
+        params={"board_id": BOARD_ID, "condition": 1, "limit": 100},
+    )
+    r.raise_for_status()
+    for card in r.json() or []:
+        if (card.get("title") or "").strip() == title:
+            return card.get("id")
+    return None
+
+
+async def find(target_month: str) -> dict[str, Any]:
+    """Проверяет, есть ли уже карточка плана на месяц. {ok, exists, id, url, title}."""
+    title = title_for_month(target_month)
+    if not API_TOKEN:
+        return {"ok": False, "exists": False, "error": "KAITEN_API_TOKEN не задан в .env"}
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            card_id = await _find_card_id(client, title)
+    except Exception as e:
+        log.warning("Kaiten: проверка карточки не удалась: %s", e)
+        return {"ok": False, "exists": False, "error": str(e)}
+
+    if not card_id:
+        return {"ok": True, "exists": False, "title": title}
+    return {
+        "ok": True,
+        "exists": True,
+        "id": card_id,
+        "url": f"{CARD_BASE_URL}/{card_id}",
+        "title": title,
+    }
+
+
 async def publish(forecast: dict[str, Any], uplift_pct: float = 0.0) -> dict[str, Any]:
     """Создаёт или обновляет карточку плана. Возвращает {ok, id, url, updated}."""
     if not API_TOKEN:
@@ -135,16 +179,7 @@ async def publish(forecast: dict[str, Any], uplift_pct: float = 0.0) -> dict[str
         # 1. Ищем существующую карточку с тем же заголовком на доске
         existing_id: int | None = None
         try:
-            r = await client.get(
-                f"{API_URL}/cards",
-                headers=_headers(),
-                params={"board_id": BOARD_ID, "condition": 1, "limit": 100},
-            )
-            r.raise_for_status()
-            for card in r.json() or []:
-                if (card.get("title") or "").strip() == title:
-                    existing_id = card.get("id")
-                    break
+            existing_id = await _find_card_id(client, title)
         except Exception as e:
             log.warning("Kaiten: поиск существующей карточки не удался: %s", e)
 

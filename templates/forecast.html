@@ -665,11 +665,34 @@ function updateChartTheme() {
 buildChart();
 
 // ── Карточка плана в Kaiten ──
+const KAITEN_MONTH = '{{ current_month }}';
+let kaitenLabel = '+ Карточка в Kaiten';
+
+function renderKaitenLink(data) {
+  const out = document.getElementById('kaitenResult');
+  const btn = document.getElementById('kaitenBtn');
+  if (data && data.exists) {
+    out.className = 'kaiten-result';
+    out.innerHTML = 'Карточка: <a href="' + data.url + '" target="_blank" rel="noopener">' +
+      data.title + '</a>';
+    kaitenLabel = '\u21bb Обновить карточку';
+    btn.textContent = kaitenLabel;
+    btn.title = 'Перезаписать описание существующей карточки';
+  }
+}
+
+async function loadKaitenCard() {
+  try {
+    const resp = await fetch('/forecast/api/kaiten-card?month=' + encodeURIComponent(KAITEN_MONTH));
+    const data = await resp.json();
+    if (data.ok) renderKaitenLink(data);
+  } catch (e) { /* тихо: отсутствие ссылки не ломает страницу */ }
+}
+
 async function createKaitenCard() {
   const btn = document.getElementById('kaitenBtn');
   const out = document.getElementById('kaitenResult');
   const uplift = parseFloat(document.getElementById('upliftInput').value) || 0;
-  const label = btn.textContent;
 
   btn.disabled = true;
   btn.textContent = 'Публикую…';
@@ -680,10 +703,11 @@ async function createKaitenCard() {
     const resp = await fetch('/forecast/api/kaiten-card', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ month: '{{ current_month }}', uplift_pct: uplift })
+      body: JSON.stringify({ month: KAITEN_MONTH, uplift_pct: uplift })
     });
     const data = await resp.json();
     if (data.ok) {
+      renderKaitenLink({ exists: true, url: data.url, title: data.title });
       out.innerHTML = (data.updated ? 'Обновлена: ' : 'Создана: ') +
         '<a href="' + data.url + '" target="_blank" rel="noopener">' + data.title + '</a>';
     } else {
@@ -695,9 +719,12 @@ async function createKaitenCard() {
     out.textContent = 'Ошибка сети: ' + e.message;
   } finally {
     btn.disabled = false;
-    btn.textContent = label;
+    btn.textContent = kaitenLabel;
   }
 }
+
+loadKaitenCard();
+
 </script>
 </body>
 </html>
