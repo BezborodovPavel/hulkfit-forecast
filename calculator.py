@@ -48,12 +48,14 @@ ANOMALY_PERIODS_COMP_V = {
     "2025-09", "2025-10", "2025-11", "2025-12",
 }
 
-PT_SEGMENTS = {
-    "Персональная тренировка в тренажерном зале",
-    "Тренировка Дуэт в тренажерном зале",
-    "Тренировка Трио в тренажерном зале",
-    "Платная группа",
-}
+# Сегменты ПТ-буфера — по подстроке, как в Q6 (queries.py): числитель и знаменатель
+# runway должны брать один и тот же набор. Точные имена ломались при переименовании
+# сегментов в 1С (с сентября 2026 буфер показывал 11 сессий вместо ~750).
+PT_SEGMENT_PATTERNS = ("Персональная тренировка", "Дуэт", "Трио", "Платная группа")
+
+
+def is_pt_segment(name: str) -> bool:
+    return any(p.lower() in (name or "").lower() for p in PT_SEGMENT_PATTERNS)
 
 MONTH_NAMES_RU = {
     1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель",
@@ -270,11 +272,7 @@ def calc_fitness_seasonal(avg_k: float, month: int, pt_runway: float) -> float:
 # ── ПТ-буфер ──────────────────────────────────────────────────────────────────
 
 def calc_pt_buffer(pt_rows: list[dict], consumption: float | None = None) -> dict[str, Any]:
-    sessions = sum(
-        row["sessions"] for row in pt_rows
-        if any(seg in row["segment"] for seg in PT_SEGMENTS)
-        or row["segment"] in PT_SEGMENTS
-    )
+    sessions = sum(row["sessions"] for row in pt_rows if is_pt_segment(row["segment"]))
     eff_consumption = consumption if (consumption and consumption > 0) else PT_CONSUMPTION_PER_MONTH
     runway = sessions / eff_consumption
     warning = runway > PT_BUFFER_RUNWAY_THRESHOLD
