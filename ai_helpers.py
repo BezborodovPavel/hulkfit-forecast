@@ -67,7 +67,7 @@ def _ai_call(system: str, user: str, max_tokens: int = 350) -> dict | None:
 
 def ai_explain_check_deviation(actual: float, expected: float, month: int) -> str | None:
     result = _ai_call(
-        system="Ты аналитик фитнес-клуба Hulk Fit (Нижний Тагил). Отвечай строго JSON на русском языке.",
+        system="Ты аналитик фитнес-клуба Hulk Fit (Нижний Тагил). Отвечай строго JSON на русском языке, без английских терминов: вместо retention пиши «доля продлений».",
         user=(
             f"Средний чек продления клубной карты за последние 90 дней: {actual:.0f} руб. "
             f"Историческая константа модели: {expected:.0f} руб. "
@@ -83,9 +83,9 @@ def ai_explain_check_deviation(actual: float, expected: float, month: int) -> st
 
 def ai_explain_retention(renewal_rate: float, base: dict, month: int) -> str | None:
     result = _ai_call(
-        system="Ты аналитик фитнес-клуба Hulk Fit. Отвечай строго JSON на русском языке.",
+        system="Ты аналитик фитнес-клуба Hulk Fit. Отвечай строго JSON на русском языке, без английских терминов: вместо retention пиши «доля продлений».",
         user=(
-            f"Прогнозный retention клубных карт: {renewal_rate * 100:.1f}% "
+            f"Прогнозная доля продлений клубных карт: {renewal_rate * 100:.1f}% "
             f"(норма 28-35%), месяц: {month}. "
             f"База: А={base['А']}, В={base['В']}, С={base['С']}, Никогда={base['Никогда']}. "
             "Объясни возможную причину аномалии (1-2 предложения). "
@@ -124,12 +124,12 @@ def ai_generate_risks(
         system=(
             "Ты аналитик фитнес-клуба Hulk Fit (Нижний Тагил). "
             "Пиши кратко, конкретно, только факты из данных. "
-            "Отвечай строго JSON на русском."
+            "Отвечай строго JSON на русском, без английских терминов: вместо retention пиши «доля продлений»."
         ),
         user=(
             f"Данные прогноза на месяц {month}:\n"
             f"- Итого прогноз: {total_k:.0f} тыс. руб.\n"
-            f"- Компонент А (продления): {comp_a_k:.0f} тыс., retention {renewal_rate*100:.1f}%\n"
+            f"- Компонент А (продления): {comp_a_k:.0f} тыс., доля продлений {renewal_rate*100:.1f}%\n"
             f"  (А:{base['А']}, В:{base['В']}, С:{base['С']}, Никогда:{base['Никогда']})\n"
             f"- Компонент Б (реактивация): {comp_b_k:.0f} тыс.\n"
             f"- Компонент В (новые): {comp_c_k:.0f} тыс.\n"
@@ -149,14 +149,14 @@ def ai_generate_comment(
     result = _ai_call(
         system=(
             "Ты аналитик фитнес-клуба Hulk Fit. Пиши деловым языком, 3-4 предложения. "
-            "Отвечай строго JSON на русском."
+            "Отвечай строго JSON на русском, без английских терминов: вместо retention пиши «доля продлений»."
         ),
         user=(
             f"Прогноз выручки на {month_name}: {total_k:.0f} тыс. руб. "
             f"Продления: {comp_a_k:.0f} тыс. ({comp_a_k/total_k*100:.0f}%), "
             f"реактивация: {comp_b_k:.0f} тыс. ({comp_b_k/total_k*100:.0f}%), "
             f"новые: {comp_c_k:.0f} тыс. ({comp_c_k/total_k*100:.0f}%). "
-            f"Retention: {renewal_rate*100:.1f}%. "
+            f"Доля продлений: {renewal_rate*100:.1f}%. "
             "Напиши итоговый комментарий для карточки планирования (3-4 предложения). "
             'JSON: {"comment": "..."}'
         ),

@@ -1,0 +1,18 @@
+{% extends "_base.html" %}
+{% block title %}Ошибка — прогноз выручки HULK.FIT{% endblock %}
+{% block page_css %}
+.err-card{max-width:640px;margin:24px auto 0;border:1px solid var(--accent);}
+.err-card .msg{white-space:pre-wrap;color:var(--text-muted);font-size:14px;margin-top:12px;}
+.err-card .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;}
+{% endblock %}
+{% block content %}
+<div class="page-head"><div><div class="page-title">Ошибка загрузки данных</div></div></div>
+<div class="card err-card">
+  <div class="card-title">Прогноз не рассчитан</div>
+  <div class="msg">{{ message }}</div>
+  <div class="actions">
+    <a class="btn" href="/forecast/">Повторить</a>
+    {% if settings_link %}<a class="btn ghost" href="/forecast/settings">Открыть настройки</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

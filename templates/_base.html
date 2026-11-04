@@ -2,14 +2,14 @@
 <html lang="ru" id="html-root">
 <head>
 <meta charset="UTF-8">
-<script>!function(){try{var t=localStorage.getItem('hulkfit-theme');if(t==='light')document.getElementById('html-root').setAttribute('data-theme','light')}catch(e){}}()</script>
+<script>!function(){try{var t=localStorage.getItem('hulkfit-theme');if(t==='light'||t==='dark')document.getElementById('html-root').setAttribute('data-theme',t)}catch(e){}}()</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}Прогноз выручки — HULK.FIT{% endblock %}</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
 {% block head_scripts %}{% endblock %}
 <style>
 /* Токены дизайн-системы Hulk Fit (tokens/colors.css, typography.css, spacing.css).
-   Тёмная тема по умолчанию, светлая — только явным переключателем [data-theme=light]. */
+   Тема следует системной (prefers-color-scheme), атрибут data-theme её перебивает. */
 :root{
   --bg:#0a0a0a;--surface:#111111;--surface-hover:#141414;--header-bg:#050505;
   --text:#ffffff;--text-muted:#cccccc;--accent:#39FF14;--accent-rgb:57,255,20;
@@ -20,14 +20,25 @@
   --font-display:"Bebas Neue","Oswald","Arial Black",Impact,sans-serif;
   --font-ui:"Oswald","Arial Black",Arial,sans-serif;
   --radius-sm:4px;--radius-md:6px;
+  --logo-white:block;--logo-dark:none;--ico-sun:inline;--ico-moon:none;
 }
-[data-theme=light]{
+@media (prefers-color-scheme: light){:root:not([data-theme=dark]){
   --bg:#f2f2f2;--surface:#ffffff;--surface-hover:#f7f7f7;--header-bg:#ffffff;
   --text:#111111;--text-muted:#555555;--accent:#00AC00;--accent-rgb:0,172,0;
   --border:#e0e0e0;--border-subtle:#ebebeb;
   --footer-bg:#e0e0e0;--footer-text:#222222;--card-shadow:0 2px 8px rgba(0,0,0,.08);
   --neutral-rgb:0,0,0;
   --chart-grid:#e0e0e0;--chart-label:#555555;
+  --logo-white:none;--logo-dark:block;--ico-sun:none;--ico-moon:inline;
+}}
+:root[data-theme=light]{
+  --bg:#f2f2f2;--surface:#ffffff;--surface-hover:#f7f7f7;--header-bg:#ffffff;
+  --text:#111111;--text-muted:#555555;--accent:#00AC00;--accent-rgb:0,172,0;
+  --border:#e0e0e0;--border-subtle:#ebebeb;
+  --footer-bg:#e0e0e0;--footer-text:#222222;--card-shadow:0 2px 8px rgba(0,0,0,.08);
+  --neutral-rgb:0,0,0;
+  --chart-grid:#e0e0e0;--chart-label:#555555;
+  --logo-white:none;--logo-dark:block;--ico-sun:none;--ico-moon:inline;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
@@ -46,10 +57,9 @@ a{color:var(--accent);}
   padding:12px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;
   position:sticky;top:0;z-index:100;}
 .brand{display:flex;align-items:center;gap:14px;min-width:0;}
-.brand img{height:30px;width:auto;flex:none;display:block;}
-.brand .logo-dark{display:none;}
-[data-theme=light] .brand .logo-white{display:none;}
-[data-theme=light] .brand .logo-dark{display:block;}
+.brand img{height:30px;width:auto;flex:none;}
+.brand .logo-white{display:var(--logo-white);}
+.brand .logo-dark{display:var(--logo-dark);}
 .brand-sub{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;}
 .nav{display:flex;align-items:center;gap:6px;}
 .nav a{font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--text);
@@ -60,9 +70,8 @@ a{color:var(--accent);}
   border-radius:var(--radius-md);width:34px;height:34px;cursor:pointer;flex:none;
   display:flex;align-items:center;justify-content:center;}
 .theme-btn:hover{border-color:var(--accent);}
-.ico-moon{display:none;}
-[data-theme=light] .ico-sun{display:none;}
-[data-theme=light] .ico-moon{display:inline;}
+.ico-sun{display:var(--ico-sun);}
+.ico-moon{display:var(--ico-moon);}
 
 /* ── Страница ── */
 .main{width:100%;max-width:1200px;margin:0 auto;padding:28px 24px 48px;flex:1;}
@@ -91,6 +100,7 @@ a{color:var(--accent);}
 .num{text-align:right;font-variant-numeric:tabular-nums;}
 
 /* Таблица — анатомия table-anatomy */
+.tbl-wrap{overflow-x:auto;}
 .tbl{width:100%;border-collapse:collapse;}
 .tbl th{background:var(--surface);color:var(--accent);font-weight:700;font-size:11px;letter-spacing:1px;
   text-transform:uppercase;text-align:left;padding:8px 10px;border-bottom:2px solid var(--accent);}
@@ -101,7 +111,7 @@ a{color:var(--accent);}
 
 /* Кнопки и поля — Button.jsx */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  background:var(--accent);color:#0a0a0a;border:1px solid var(--accent);border-radius:var(--radius-md);
+  background:var(--accent);color:var(--bg);border:1px solid var(--accent);border-radius:var(--radius-md);
   padding:8px 18px;font-family:var(--font-ui);font-weight:700;font-size:12px;letter-spacing:1px;
   text-transform:uppercase;cursor:pointer;text-decoration:none;white-space:nowrap;}
 .btn.ghost{background:transparent;color:var(--accent);}
@@ -112,10 +122,10 @@ a{color:var(--accent);}
 .field:focus{outline:none;border-color:var(--accent);}
 
 /* Пометки: статус передаётся словом и рамкой, не цветом */
-.note{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-sm);
+.note{border:1px solid var(--accent);border-radius:var(--radius-sm);
   padding:9px 12px;font-size:13px;margin-top:12px;color:var(--text);}
 .note b{font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-right:6px;}
-.note.quiet{border-left-color:var(--border);}
+.note.quiet{border-color:var(--border);}
 .note.quiet b{color:var(--text-muted);}
 .err-box{border:1px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text);font-size:13px;}
 .err-box::before{content:'ОШИБКА: ';font-weight:700;color:var(--accent);}
@@ -161,11 +171,18 @@ footer{background:var(--footer-bg);color:var(--footer-text);font-weight:700;font
 <script>
 function toggleTheme() {
   const root = document.getElementById('html-root');
-  const isLight = root.getAttribute('data-theme') === 'light';
-  if (isLight) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', 'light');
-  try { localStorage.setItem('hulkfit-theme', isLight ? 'dark' : 'light'); } catch (e) {}
+  const cur = root.getAttribute('data-theme') ||
+    (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = cur === 'light' ? 'dark' : 'light';
+  root.setAttribute('data-theme', next);
+  try { localStorage.setItem('hulkfit-theme', next); } catch (e) {}
   if (typeof onThemeChange === 'function') onThemeChange();
 }
+try {
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+    if (!document.documentElement.getAttribute('data-theme') && typeof onThemeChange === 'function') onThemeChange();
+  });
+} catch (e) {}
 function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 </script>
 {% block scripts %}{% endblock %}

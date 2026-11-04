@@ -1,9 +1,9 @@
-{% set nav = 'forecast' %}
-{% extends "_base.html" %}
-{% block title %}Прогноз выручки — {{ forecast.target_month_display }} — HULK.FIT{% endblock %}
-{% block head_scripts %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>{% endblock %}
+{% set nav = 'forecast' %}
+{% extends "_base.html" %}
+{% block title %}Прогноз выручки — {{ forecast.target_month_display }} — HULK.FIT{% endblock %}
+{% block head_scripts %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>{% endblock %}
 
-{% block page_css %}
+{% block page_css %}
 /* ── Панель месяца ── */
 .month-bar{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin:16px 0 4px;}
 .month-bar label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);}
@@ -38,7 +38,7 @@
 .bar i.low{background:rgba(var(--neutral-rgb),.35);}
 tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
 
-.big-num{font-family:var(--font-display);font-weight:700;font-size:52px;line-height:1;color:var(--text);text-align:center;padding-top:16px;}
+.big-num{font-family:var(--font-display);font-weight:700;font-size:36px;line-height:1;color:var(--text);text-align:center;padding-top:16px;}
 .big-unit{text-align:center;font-size:13px;color:var(--text-muted);margin-top:4px;}
 
 /* Буфер ПТ */
@@ -63,10 +63,10 @@ tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
 .risk-title{font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
 .risk-title.up{color:var(--accent);}
 .risk-title.down{color:var(--text);}
-.risk-item{border:1px solid var(--border);border-left:3px solid var(--border);border-radius:var(--radius-sm);
+.risk-item{border:1px solid var(--border);border-radius:var(--radius-sm);
   padding:8px 12px;margin-bottom:8px;font-size:13px;background:var(--surface);}
-.risk-item.up{border-left-color:var(--accent);}
-.ai-comment{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-sm);
+.risk-item.up{border-color:var(--accent);}
+.ai-comment{border:1px solid var(--accent);border-radius:var(--radius-sm);
   background:var(--surface);padding:16px 20px;font-size:14px;line-height:1.6;}
 
 @media(max-width:900px){
@@ -75,19 +75,20 @@ tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
 }
 @media(max-width:480px){
   .kpi-row{grid-template-columns:1fr;}
+  .bar{display:none;}
   .tbl td,.tbl th{padding:7px 6px;}
 }
-{% endblock %}
+{% endblock %}
 
-{% block content %}
+{% block content %}
 <div class="page-head">
   <div>
     <div class="page-title">Прогноз выручки</div>
-    <div class="page-sub">{{ forecast.target_month_display }}</div>
+    <div class="page-sub">{{ forecast.target_month|period }}</div>
   </div>
   <div class="page-meta">
     Источник: 1С FitClub<br>
-    {% if is_archive %}Снимок от {{ saved_at }}{% else %}Рассчитано: {{ forecast.computed_at }}{% endif %}
+    {% if is_archive %}Снимок от {{ saved_at }}{% else %}Рассчитано: {{ forecast.computed_at }}{% endif %}
   </div>
 </div>
 
@@ -95,48 +96,48 @@ tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
   <label for="monthSelect">Месяц</label>
   <form method="get" action="/forecast/">
     <select class="field" id="monthSelect" name="month" onchange="this.form.submit()">
-      {% for opt in month_options %}
-      <option value="{{ opt.value }}" {% if opt.value == current_month %}selected{% endif %}>{{ opt.label }}</option>
-      {% endfor %}
+      {% for opt in month_options %}
+      <option value="{{ opt.value }}" {% if opt.value == current_month %}selected{% endif %}>{{ opt.label }}</option>
+      {% endfor %}
     </select>
   </form>
-  {% if is_archive %}<span class="archive-badge">Архив</span>{% else %}
-  <a class="btn ghost" href="/forecast/?month={{ current_month }}&refresh=1" title="Сбросить кэш и пересчитать">Пересчитать</a>{% endif %}
+  {% if is_archive %}<span class="archive-badge">Архив</span>{% else %}
+  <a class="btn ghost" href="/forecast/?month={{ current_month }}&refresh=1" title="Сбросить кэш и пересчитать">Пересчитать</a>{% endif %}
   <span class="kaiten-box">
-    <label for="upliftInput">Надбавка, %</label>
+    <label for="upliftInput">Надбавка, %</label>
     <input type="number" id="upliftInput" class="field kaiten-uplift" value="0" min="-50" max="100" step="1"
            title="Надбавка к прогнозу в процентах, применяется ко всем направлениям">
     <button type="button" id="kaitenBtn" class="btn ghost" onclick="createKaitenCard()">Карточка в Kaiten</button>
   </span>
   <span id="kaitenResult" class="kaiten-result"></span>
 </div>
-{% if forecast.settings %}
+{% if forecast.settings %}
 <div class="filters-line">
-  Отборы 1С: карты — {% for n in forecast.settings.cards %}«{{ n }}»{% if not loop.last %}, {% endif %}{% endfor %};
-  ПТ — {% for n in forecast.settings.pt %}«{{ n }}»{% if not loop.last %}, {% endif %}{% endfor %}{% if forecast.settings.source == 'default' %} (по умолчанию){% endif %}
+  Отборы 1С: карты — {% for n in forecast.settings.cards %}«{{ n }}»{% if not loop.last %}, {% endif %}{% endfor %};
+  ПТ — {% for n in forecast.settings.pt %}«{{ n }}»{% if not loop.last %}, {% endif %}{% endfor %}{% if forecast.settings.source == 'default' %} (по умолчанию){% endif %}
   · <a href="/forecast/settings">изменить</a>
 </div>
-{% endif %}
+{% endif %}
 
 <div class="kpi-row">
   <div class="kpi">
     <div class="kpi-label">Итого прогноз</div>
-    <div class="kpi-value">{{ "{:,.0f}".format(forecast.total_k).replace(",", " ") }}<small>тыс. ₽</small></div>
+    <div class="kpi-value">{{ forecast.total_k|num }}<small> тыс. ₽</small></div>
     <div class="kpi-note">Клубные карты, услуги и отделы</div>
   </div>
   <div class="kpi">
     <div class="kpi-label">Клубные карты</div>
-    <div class="kpi-value">{{ "{:,.0f}".format(forecast.cards_total_k).replace(",", " ") }}<small>тыс. ₽</small></div>
-    <div class="kpi-note">Продления, реактивация, новые — {{ "{:.0f}".format(forecast.cards_total_k / forecast.total_k * 100) }} % от итога</div>
+    <div class="kpi-value">{{ forecast.cards_total_k|num }}<small> тыс. ₽</small></div>
+    <div class="kpi-note">Продления, реактивация, новые — {{ (forecast.cards_total_k / forecast.total_k * 100)|num }} % от итога</div>
   </div>
   <div class="kpi">
     <div class="kpi-label">Услуги и отделы</div>
-    <div class="kpi-value">{{ "{:,.0f}".format(forecast.other_total_k).replace(",", " ") }}<small>тыс. ₽</small></div>
-    <div class="kpi-note">{{ "{:.0f}".format(forecast.other_total_k / forecast.total_k * 100) }} % от итога</div>
+    <div class="kpi-value">{{ forecast.other_total_k|num }}<small> тыс. ₽</small></div>
+    <div class="kpi-note">{{ (forecast.other_total_k / forecast.total_k * 100)|num }} % от итога</div>
   </div>
   <div class="kpi">
     <div class="kpi-label">Продление карт</div>
-    <div class="kpi-value">{{ "{:.1f}".format(forecast.comp_a.renewal_rate * 100) }}<small>%</small></div>
+    <div class="kpi-value">{{ (forecast.comp_a.renewal_rate * 100)|num(1) }}<small> %</small></div>
     <div class="kpi-note">{{ forecast.comp_a.total_renewals }} из {{ forecast.comp_a.total_expiring }} истекающих</div>
   </div>
 </div>
@@ -146,52 +147,52 @@ tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
 
   <div class="card">
     <div class="card-title">Компонент А — продления
-      <span class="badge">{{ "{:,.0f}".format(forecast.comp_a.revenue_k).replace(",", " ") }} тыс. ₽</span>
+      <span class="badge">{{ forecast.comp_a.revenue_k|num }} тыс. ₽</span>
     </div>
-    <table class="tbl">
+    <div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>Группа</th><th class="num">Истекает</th><th>Продлят</th><th class="num">Карт</th><th class="num">Тыс. ₽</th></tr></thead>
       <tbody>
-      {% set chk = forecast.comp_a.avg_check %}
-      {% for cat, label, lvl in [("А","А — визит за 7 дней",""),("В","В — 8–14 дней","mid"),("С","С — 15+ дней","low"),("Никогда","Не посещали","low")] %}
-      {% set cnt = forecast.comp_a.base[cat] %}
-      {% set ren = forecast.comp_a.renewals_by_cat[cat] %}
-      {% set ret_pct = (ren / cnt * 100) if cnt > 0 else 0 %}
+      {% set chk = forecast.comp_a.avg_check %}
+      {% for cat, label, lvl in [("А","А — визит за 7 дней",""),("В","В — 8–14 дней","mid"),("С","С — 15+ дней","low"),("Никогда","Не посещали","low")] %}
+      {% set cnt = forecast.comp_a.base[cat] %}
+      {% set ren = forecast.comp_a.renewals_by_cat[cat] %}
+      {% set ret_pct = (ren / cnt * 100) if cnt > 0 else 0 %}
       <tr>
         <td>{{ label }}</td>
         <td class="num">{{ cnt }}</td>
         <td><div style="display:flex;align-items:center;gap:8px;">
-          <span class="num" style="min-width:42px;">{{ "{:.1f}".format(ret_pct) }} %</span>
+          <span class="num" style="min-width:42px;">{{ (ret_pct)|num(1) }} %</span>
           <span class="bar"><i class="{{ lvl }}" style="width:{{ [ret_pct, 100]|min|round }}%"></i></span>
         </div></td>
         <td class="num">{{ ren }}</td>
-        <td class="num accent">{{ "{:.0f}".format(ren * chk / 1000) }}</td>
+        <td class="num accent">{{ (ren * chk / 1000)|num }}</td>
       </tr>
-      {% endfor %}
+      {% endfor %}
       </tbody>
       <tfoot><tr>
         <td>Итого</td><td class="num">{{ forecast.comp_a.total_expiring }}</td>
-        <td>{{ "{:.1f}".format(forecast.comp_a.renewal_rate * 100) }} %</td>
+        <td>{{ (forecast.comp_a.renewal_rate * 100)|num(1) }} %</td>
         <td class="num">{{ forecast.comp_a.total_renewals }}</td>
-        <td class="num accent">{{ forecast.comp_a.revenue_k }}</td>
+        <td class="num accent">{{ forecast.comp_a.revenue_k|num }}</td>
       </tr></tfoot>
-    </table>
+    </table></div>
     <div class="card-foot">
-      Средний чек: <strong>{{ "{:,.0f}".format(forecast.comp_a.avg_check).replace(",", " ") }} ₽</strong>
-      {% if forecast.comp_a.check_deviation_pct > 5 %}(отклонение {{ forecast.comp_a.check_deviation_pct }} % от константы){% endif %}
-      · Сезонный коэффициент: {{ forecast.season_coeff }}
+      Средний чек: <strong>{{ forecast.comp_a.avg_check|num }} ₽</strong>
+      {% if forecast.comp_a.check_deviation_pct > 5 %}(отклонение {{ forecast.comp_a.check_deviation_pct|num(1) }} % от константы){% endif %}
+      · Сезонный коэффициент: {{ forecast.season_coeff|num(2) }}
     </div>
-    {% if forecast.comp_a.check_note %}<div class="note"><b>Чек</b>{{ forecast.comp_a.check_note }}</div>{% endif %}
-    {% if forecast.comp_a.retention_note %}<div class="note"><b>Продления</b>{{ forecast.comp_a.retention_note }}</div>{% endif %}
+    {% if forecast.comp_a.check_note %}<div class="note"><b>Чек</b>{{ forecast.comp_a.check_note }}</div>{% endif %}
+    {% if forecast.comp_a.retention_note %}<div class="note"><b>Продления</b>{{ forecast.comp_a.retention_note }}</div>{% endif %}
   </div>
 
   <div class="card">
     <div class="card-title">Компонент Б — реактивация
-      <span class="badge">{{ "{:,.0f}".format(forecast.comp_b.revenue_k).replace(",", " ") }} тыс. ₽</span>
+      <span class="badge">{{ forecast.comp_b.revenue_k|num }} тыс. ₽</span>
     </div>
-    <table class="tbl">
-      <thead><tr><th>Ушли N мес. назад</th><th class="num">Пул, чел.</th><th class="num">Возврат, %</th><th class="num">Вернётся</th></tr></thead>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Ушли N мес. назад</th><th class="num">Пул, чел.</th><th class="num">Возврат, %</th><th class="num">Вернётся</th></tr></thead>
       <tbody>
-      {% set m = forecast.target_month.split('-')[1]|int %}
+      {% set m = forecast.target_month.split('-')[1]|int %}
       {% set rates = {
         "1m":    {1:12.1,2:10.4,3:8.4,4:8.6,5:4.8,6:4.5,7:6.8,8:12.4,9:6.6,10:10.1,11:10.3,12:10.5},
         "2m":    {1:3.5,2:8.0,3:6.9,4:6.7,5:7.0,6:4.5,7:5.5,8:6.5,9:8.6,10:4.7,11:7.7,12:6.1},
@@ -200,126 +201,126 @@ tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
         "7-12m": {1:2.5,2:1.9,3:1.8,4:1.0,5:1.4,6:1.7,7:2.5,8:1.4,9:2.0,10:2.1,11:2.3,12:2.9},
         "13-24m":{1:1.4,2:1.0,3:1.1,4:0.7,5:0.7,6:0.5,7:0.7,8:0.7,9:1.0,10:1.2,11:1.5,12:1.0},
         "25m+":  {1:0.5,2:0.5,3:0.3,4:0.7,5:0.2,6:0.4,7:0.2,8:0.3,9:0.4,10:0.4,11:0.4,12:0.6}
-      } %}
-      {% for bucket, label in [("1m","1 мес."),("2m","2 мес."),("3m","3 мес."),("4-6m","4–6 мес."),("7-12m","7–12 мес."),("13-24m","13–24 мес."),("25m+","25+ мес.")] %}
-      {% set pool = forecast.comp_b.pools[bucket] %}
-      {% set ret = forecast.comp_b.returns_by_bucket[bucket] %}
-      {% set anom = bucket == "13-24m" and forecast.comp_b.pool_anomaly %}
-      <tr {% if anom %}class="anomaly"{% endif %}>
-        <td>{{ label }}{% if anom %} · аномальный пул{% endif %}</td>
-        <td class="num">{{ "{:,}".format(pool).replace(",", " ") }}</td>
-        <td class="num muted">{{ rates[bucket][m] }}</td>
-        <td class="num accent">{{ "{:.1f}".format(ret) }}</td>
+      } %}
+      {% for bucket, label in [("1m","1 мес."),("2m","2 мес."),("3m","3 мес."),("4-6m","4–6 мес."),("7-12m","7–12 мес."),("13-24m","13–24 мес."),("25m+","25+ мес.")] %}
+      {% set pool = forecast.comp_b.pools[bucket] %}
+      {% set ret = forecast.comp_b.returns_by_bucket[bucket] %}
+      {% set anom = bucket == "13-24m" and forecast.comp_b.pool_anomaly %}
+      <tr {% if anom %}class="anomaly"{% endif %}>
+        <td>{{ label }}{% if anom %} · аномальный пул{% endif %}</td>
+        <td class="num">{{ pool|num }}</td>
+        <td class="num muted">{{ rates[bucket][m]|num(1) }}</td>
+        <td class="num accent">{{ (ret)|num(1) }}</td>
       </tr>
-      {% endfor %}
+      {% endfor %}
       </tbody>
       <tfoot><tr>
         <td>Итого</td>
-        <td class="num">{{ "{:,}".format(forecast.comp_b.pools.values()|sum).replace(",", " ") }}</td>
+        <td class="num">{{ forecast.comp_b.pools.values()|sum|num }}</td>
         <td></td>
-        <td class="num accent">{{ forecast.comp_b.total_returns }}</td>
+        <td class="num accent">{{ forecast.comp_b.total_returns|num(1) }}</td>
       </tr></tfoot>
-    </table>
+    </table></div>
     <div class="card-foot">
-      Средний чек реактивации: <strong>8 933 ₽</strong> · Среднемесячный отток: {{ forecast.comp_b.avg_monthly_churn }} чел.
+      Средний чек реактивации: <strong>8 933 ₽</strong> · Среднемесячный отток: {{ forecast.comp_b.avg_monthly_churn }} чел.
     </div>
-    {% if forecast.comp_b.pool_note %}<div class="note"><b>Пул</b>{{ forecast.comp_b.pool_note }}</div>{% endif %}
+    {% if forecast.comp_b.pool_note %}<div class="note"><b>Пул</b>{{ forecast.comp_b.pool_note }}</div>{% endif %}
   </div>
 </div>
 
 <div class="grid-3">
   <div class="card">
-    <div class="card-title">Компонент В — новые <span class="badge">{{ forecast.comp_c.revenue_k }} тыс. ₽</span></div>
-    <div class="big-num">{{ forecast.comp_c.revenue_k }}</div>
+    <div class="card-title">Компонент В — новые <span class="badge">{{ forecast.comp_c.revenue_k|num }} тыс. ₽</span></div>
+    <div class="big-num">{{ forecast.comp_c.revenue_k|num }}</div>
     <div class="big-unit">тыс. ₽ — базовый ориентир месяца {{ forecast.target_month.split('-')[1]|int }}</div>
     <div class="note quiet"><b>Справка</b>Ориентир из модели, уточняется по продажам первых 7–10 дней месяца.</div>
   </div>
 
   <div class="card">
     <div class="card-title">Прочие отделы</div>
-    <table class="tbl">
+    <div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>Отдел</th><th class="num">Тыс. ₽</th></tr></thead>
       <tbody>
-      {% for dept, rev in forecast.depts.items() %}
-      <tr><td>{{ dept }}</td><td class="num">{{ rev }}</td></tr>
-      {% endfor %}
+      {% for dept, rev in forecast.depts.items() %}
+      <tr><td>{{ dept }}</td><td class="num">{{ rev|num }}</td></tr>
+      {% endfor %}
       </tbody>
-      <tfoot><tr><td>Итого</td><td class="num accent">{{ forecast.other_total_k }}</td></tr></tfoot>
-    </table>
-    {% if forecast.pt.warning %}<div class="note"><b>Внимание</b>Высокий буфер ПТ — фитнес-услуги снижены на 20 %.</div>{% endif %}
+      <tfoot><tr><td>Итого</td><td class="num accent">{{ forecast.other_total_k|num }}</td></tr></tfoot>
+    </table></div>
+    {% if forecast.pt.warning %}<div class="note"><b>Внимание</b>Высокий буфер ПТ — фитнес-услуги снижены на 20 %.</div>{% endif %}
   </div>
 
   <div class="card">
     <div class="card-title">Буфер ПТ-пакетов</div>
     <div class="runway">
-      <div class="runway-track"><div class="runway-fill {% if forecast.pt.runway > 1.5 %}over{% elif forecast.pt.runway < 0.5 %}low{% endif %}"
+      <div class="runway-track"><div class="runway-fill {% if forecast.pt.runway > 1.5 %}over{% elif forecast.pt.runway < 0.5 %}low{% endif %}"
            style="width:{{ [forecast.pt.runway / 3 * 100, 100]|min|round }}%"></div></div>
-      <div class="runway-val">{{ forecast.pt.runway }} мес.</div>
+      <div class="runway-val">{{ forecast.pt.runway|num(2) }} мес.</div>
     </div>
     <div class="card-foot" style="margin-top:0;">
-      Остаток сессий: <strong>{{ "{:,}".format(forecast.pt.sessions).replace(",", " ") }}</strong>
-      · расход: {{ "{:,}".format(forecast.pt.consumption).replace(",", " ") }} в месяц
+      Остаток сессий: <strong>{{ forecast.pt.sessions|num }}</strong>
+      · расход: {{ forecast.pt.consumption|num }} в месяц
     </div>
-    {% if forecast.pt.warning %}
-    <div class="note"><b>Внимание</b>Буфер больше 1,5 мес. — прогноз фитнес-услуг снижен на 20 %.</div>
-    {% else %}
+    {% if forecast.pt.warning %}
+    <div class="note"><b>Внимание</b>Буфер больше 1,5 мес. — прогноз фитнес-услуг снижен на 20 %.</div>
+    {% else %}
     <div class="note quiet"><b>✓ В норме</b>Буфер меньше 1,5 мес., снижения нет.</div>
-    {% endif %}
+    {% endif %}
     <div class="pt-rows-title">Остаток по услугам</div>
-    {% for row in forecast.pt.rows %}
+    {% for row in forecast.pt.rows %}
     <div class="pt-row">
-      <span class="pt-row-name" title="{{ row.segment }}">{{ row.segment[:40] }}{% if row.segment|length > 40 %}…{% endif %}</span>
-      <span>{{ "{:,}".format(row.sessions|round|int).replace(",", " ") }}</span>
+      <span class="pt-row-name" title="{{ row.segment }}">{{ row.segment[:40] }}{% if row.segment|length > 40 %}…{% endif %}</span>
+      <span>{{ row.sessions|round|int|num }}</span>
     </div>
-    {% endfor %}
+    {% endfor %}
   </div>
 </div>
 
-{% if forecast.fact_rows %}
+{% if forecast.fact_rows %}
 <div class="section-heading"><span>План против факта</span></div>
 <div class="card">
-  <table class="tbl">
-    <thead><tr><th>Направление</th><th class="num">План, тыс. ₽</th><th class="num">Факт, тыс. ₽</th><th class="num">Отклонение</th></tr></thead>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Направление</th><th class="num">План, тыс. ₽</th><th class="num">Факт, тыс. ₽</th><th class="num">Отклонение</th></tr></thead>
     <tbody>
-    {% for row in forecast.fact_rows %}
-    <tr {% if loop.last %}style="font-weight:700"{% endif %}>
+    {% for row in forecast.fact_rows %}
+    <tr {% if loop.last %}style="font-weight:700"{% endif %}>
       <td>{{ row.name }}</td>
-      <td class="num">{{ "{:,.0f}".format(row.plan).replace(",", " ") }}</td>
-      <td class="num">{{ "{:,.0f}".format(row.fact).replace(",", " ") }}</td>
-      <td class="num {% if row.delta is not none %}{{ 'delta-up' if row.delta >= 0 else 'delta-down' }}{% endif %}">
-        {% if row.delta is not none %}{{ '▲' if row.delta >= 0 else '▼' }} {{ "%+.1f"|format(row.delta) }} %{% else %}—{% endif %}
+      <td class="num">{{ row.plan|num }}</td>
+      <td class="num">{{ row.fact|num }}</td>
+      <td class="num {% if row.delta is not none %}{{ 'delta-up' if row.delta >= 0 else 'delta-down' }}{% endif %}">
+        {% if row.delta is not none %}{{ '▲' if row.delta >= 0 else '▼' }} {{ '+' if row.delta >= 0 else '−' }}{{ (row.delta|abs)|num(1) }} %{% else %}—{% endif %}
       </td>
     </tr>
-    {% endfor %}
+    {% endfor %}
     </tbody>
-  </table>
+  </table></div>
 </div>
-{% endif %}
+{% endif %}
 
 <div class="section-heading"><span>История выручки по отделам</span></div>
 <div class="card"><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></div>
 
-{% if forecast.risks %}
+{% if forecast.risks %}
 <div class="section-heading"><span>Оценка рисков — ИИ</span></div>
 <div class="risks-grid">
   <div>
     <div class="risk-title down">▼ Риски снижения</div>
-    {% for item in forecast.risks.down %}<div class="risk-item">{{ item }}</div>{% endfor %}
+    {% for item in forecast.risks.down %}<div class="risk-item">{{ item }}</div>{% endfor %}
   </div>
   <div>
     <div class="risk-title up">▲ Возможности роста</div>
-    {% for item in forecast.risks.up %}<div class="risk-item up">{{ item }}</div>{% endfor %}
+    {% for item in forecast.risks.up %}<div class="risk-item up">{{ item }}</div>{% endfor %}
   </div>
 </div>
-{% endif %}
+{% endif %}
 
-{% if forecast.ai_comment %}
+{% if forecast.ai_comment %}
 <div class="section-heading"><span>Комментарий для карточки Kaiten</span></div>
 <div class="ai-comment">{{ forecast.ai_comment }}</div>
-{% endif %}
-{% endblock %}
+{% endif %}
+{% endblock %}
 
-{% block scripts %}
+{% block scripts %}
 <script>
 // ── График: цвета по роли из токенов, сохранённые в снимках цвета не используются ──
 const chartData = {{ forecast.chart | tojson }};
@@ -327,12 +328,12 @@ const DEPT_CARDS = {{ (forecast.dept_cards or "Клубные карты") | toj
 const DEPT_FITNESS = {{ (forecast.dept_fitness or "Фитнес-услуги") | tojson }};
 let revenueChart = null;
 
-function seriesColor(label, i) {
+function seriesStyle(label, i) {
   const acc = cssVar('--accent-rgb'), neu = cssVar('--neutral-rgb');
-  if (label === DEPT_CARDS) return `rgba(${acc},.85)`;
-  if (label === DEPT_FITNESS) return `rgba(${acc},.4)`;
-  const steps = [.55, .4, .28, .18, .1];
-  return `rgba(${neu},${steps[Math.min(i, steps.length - 1)]})`;
+  if (label === DEPT_CARDS) return { bg: `rgba(${acc},.15)`, line: `rgb(${acc})` };
+  if (label === DEPT_FITNESS) return { bg: `rgba(${acc},.06)`, line: `rgba(${acc},.4)` };
+  const lines = [.3, .24, .18, .13, .09];
+  return { bg: `rgba(${neu},.05)`, line: `rgba(${neu},${lines[Math.min(i, lines.length - 1)]})` };
 }
 
 function buildChart() {
@@ -346,8 +347,8 @@ function buildChart() {
       labels: chartData.labels,
       datasets: chartData.datasets.map(ds => {
         const isMain = ds.label === DEPT_CARDS || ds.label === DEPT_FITNESS;
-        const c = seriesColor(ds.label, isMain ? 0 : other++);
-        return { label: ds.label, data: ds.data, backgroundColor: c, borderColor: c, borderWidth: 0, borderRadius: 2 };
+        const c = seriesStyle(ds.label, isMain ? 0 : other++);
+        return { label: ds.label, data: ds.data, backgroundColor: c.bg, borderColor: c.line, borderWidth: 2, borderRadius: 2 };
       })
     },
     options: {
@@ -355,7 +356,7 @@ function buildChart() {
       plugins: {
         legend: { position: 'bottom', labels: { color: label, font, padding: 14, boxWidth: 12 } },
         tooltip: { mode: 'index', intersect: false,
-          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString('ru-RU')} тыс. ₽` } }
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString('ru-RU')} тыс. ₽` } }
       },
       scales: {
         x: { stacked: true, grid: { color: grid }, ticks: { color: label, font } },
@@ -424,4 +425,4 @@ async function createKaitenCard() {
 }
 loadKaitenCard();
 </script>
-{% endblock %}
+{% endblock %}

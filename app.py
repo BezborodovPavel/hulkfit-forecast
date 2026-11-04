@@ -52,6 +52,28 @@ queries.set_mcp_url(MCP_URL)
 app = FastAPI(title="Hulk Fit Forecast", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory="templates")
 
+NBSP = "\u00a0"
+
+
+def fmt_num(value: Any, digits: int = 0) -> str:
+    """Число по дизайн-системе: разряды через неразрывный пробел, десятичная запятая."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return "—"
+    s = f"{v:,.{digits}f}"
+    return s.replace(",", NBSP).replace(".", ",")
+
+
+def fmt_period(month_key: str) -> str:
+    """'2026-11' → '01.11.2026 — 30.11.2026'."""
+    y, m = (int(x) for x in str(month_key).split("-")[:2])
+    return f"01.{m:02d}.{y} — {monthrange(y, m)[1]:02d}.{m:02d}.{y}"
+
+
+templates.env.filters["num"] = fmt_num
+templates.env.filters["period"] = fmt_period
+
 # Логотипы дизайн-системы (assets/logo-lockup-*.png, ужаты до 120 px) — отдаёт сам сервис,
 # nginx срезает префикс: /forecast/static/<имя> → /static/<имя>
 _STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -536,27 +558,5 @@ async def health():
 
 
 def _error_page(msg: str, settings_link: bool = False) -> str:
-    import html
-    msg = html.escape(msg)
-    extra = '<p><a href="/forecast/settings">Открыть настройки</a></p>' if settings_link else ""
-    return f"""<!doctype html><html lang="ru" id="html-root"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<script>!function(){{try{{if(localStorage.getItem('hulkfit-theme')==='light')document.getElementById('html-root').setAttribute('data-theme','light')}}catch(e){{}}}}()</script>
-<title>Ошибка — прогноз выручки HULK.FIT</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
-<style>:root{{--bg:#0a0a0a;--surface:#111111;--text:#ffffff;--muted:#cccccc;--accent:#39FF14;--border:#222222;}}
-[data-theme=light]{{--bg:#f2f2f2;--surface:#ffffff;--text:#111111;--muted:#555555;--accent:#00AC00;--border:#e0e0e0;}}
-body{{margin:0;background:var(--bg);color:var(--text);font-family:"Oswald",Arial,sans-serif;
-display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;box-sizing:border-box;}}
-.card{{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);
-border-radius:4px;padding:28px;max-width:560px;width:100%;}}
-h2{{font-family:"Bebas Neue","Oswald",sans-serif;font-size:28px;line-height:.95;text-transform:uppercase;
-color:var(--accent);margin:0 0 14px;}}
-pre{{white-space:pre-wrap;font-family:inherit;font-size:14px;color:var(--muted);margin:0;}}
-a{{color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:13px;}}
-p{{margin:16px 0 0;}}</style></head>
-<body><div class="card">
-<h2>Ошибка загрузки данных</h2>
-<pre>{msg}</pre>
-<p><a href="/forecast/">Повторить</a></p>{extra}
-</div></body></html>"""
+    """Страница ошибки в общем шаблоне (шапка с логотипом, футер); текст экранирует Jinja."""
+    return templates.get_template("error.html").render(message=msg, settings_link=settings_link, nav="")
