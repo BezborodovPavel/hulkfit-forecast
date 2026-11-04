@@ -13,6 +13,7 @@ from __future__ import annotations
 import fcntl
 import hashlib
 import json
+import logging
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -38,6 +39,7 @@ LABELS = {
 }
 
 _TZ = timezone(timedelta(hours=5))   # Екатеринбург, время клуба
+log = logging.getLogger("settings")
 
 
 def _dir() -> Path:
@@ -80,11 +82,14 @@ def load() -> dict:
         out = _clean(data)
         out.update(source="file", updated_by=data.get("updated_by"), updated_at=data.get("updated_at"))
         return out
-    except Exception:
-        # Нет файла или он битый — дашборд не падает, ответ покажет source=default
-        out = _clean(DEFAULTS)
-        out.update(source="default", updated_by=None, updated_at=None)
-        return out
+    except FileNotFoundError:
+        pass
+    except Exception as exc:
+        # Битый файл не роняет дашборд, но молча это скрывать нельзя
+        log.warning("settings.json не читается, действуют значения по умолчанию: %s", exc)
+    out = _clean(DEFAULTS)
+    out.update(source="default", updated_by=None, updated_at=None)
+    return out
 
 
 def fingerprint(cfg: dict) -> str:

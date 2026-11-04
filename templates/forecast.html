@@ -49,6 +49,17 @@ body{
 }
 [data-theme=light] .theme-btn{background:rgba(255,255,255,.8);}
 .theme-btn:hover{border-color:var(--green);color:var(--green);}
+.theme-btn .ico{color:var(--green);}
+.ico-moon{display:none;}
+[data-theme=light] .ico-sun{display:none;}
+[data-theme=light] .ico-moon{display:inline;}
+/* Шапка на телефоне: логотип и название не сжимаются, подпись скрыта */
+.header img,.logo{flex:none;white-space:nowrap;}
+@media(max-width:600px){.logo-sub{display:none;}.header-right{gap:4px;}.header-link{padding:6px 6px;}}
+.pt-rows-title{font-size:11px;color:#cccccc;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;}
+.pt-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);}
+.pt-row-name{color:#cccccc;}
+[data-theme=light] .pt-rows-title,[data-theme=light] .pt-row-name{color:#555;}
 
 .kaiten-box{display:inline-flex;align-items:center;gap:6px;margin-left:14px;}
 .kaiten-uplift{width:56px;background:transparent;border:1px solid #333;border-radius:6px;
@@ -90,6 +101,9 @@ body{
   cursor:pointer;
 }
 .month-select:focus{outline:none;border-color:var(--green);}
+.filters-line{font-size:12px;color:#cccccc;margin-bottom:18px;}
+[data-theme=light] .filters-line{color:#555;}
+.filters-line a{color:var(--green);text-decoration:underline;text-underline-offset:3px;}
 .computed-at{margin-left:auto;font-size:11px;color:var(--text-muted);}
 
 /* ── Layout ── */
@@ -235,7 +249,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
   <div class="header-right">
     <a class="header-link" href="/forecast/settings">Настройки</a>
     <a class="header-link" href="/">← Дашборды</a>
-    <button class="theme-btn" onclick="toggleTheme()"><span id="theme-icon">☀</span></button>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Сменить тему"><svg class="ico ico-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg><svg class="ico ico-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
   </div>
 </div>
 
@@ -273,6 +287,13 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
 
 <!-- Main content -->
 <div class="main">
+{% if forecast.settings %}
+<div class="filters-line">
+  Отборы 1С: карты — {% for n in forecast.settings.cards %}«{{ n }}»{% if not loop.last %}, {% endif %}{% endfor %};
+  ПТ — {% for n in forecast.settings.pt %}«{{ n }}»{% if not loop.last %}, {% endif %}{% endfor %}{% if forecast.settings.source == 'default' %} (по умолчанию){% endif %}
+  · <a href="/forecast/settings">изменить</a>
+</div>
+{% endif %}
 
   <!-- KPI row -->
   <div class="kpi-row">
@@ -523,11 +544,11 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
       </div>
       {% endif %}
       <hr class="sep">
-      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Остаток по услугам</div>
+      <div class="pt-rows-title">Остаток по услугам</div>
       {% for row in forecast.pt.rows %}
-      <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);">
-        <span style="color:var(--text-dim);" title="{{ row.segment }}">{{ row.segment[:40] }}{% if row.segment|length > 40 %}…{% endif %}</span>
-        <span style="color:var(--text);">{{ row.sessions|round|int }}</span>
+      <div class="pt-row">
+        <span class="pt-row-name" title="{{ row.segment }}">{{ row.segment[:40] }}{% if row.segment|length > 40 %}…{% endif %}</span>
+        <span style="color:var(--text);">{{ "{:,}".format(row.sessions|round|int).replace(",", " ") }}</span>
       </div>
       {% endfor %}
     </div>
@@ -616,26 +637,16 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
 // ── Theme ──
 function toggleTheme() {
   const root = document.getElementById('html-root');
-  const icon = document.getElementById('theme-icon');
   const isLight = root.getAttribute('data-theme') === 'light';
   if (isLight) {
     root.removeAttribute('data-theme');
-    icon.textContent = '☀';
     try { localStorage.setItem('hulkfit-theme','dark'); } catch(e){}
   } else {
     root.setAttribute('data-theme','light');
-    icon.textContent = '🌙';
     try { localStorage.setItem('hulkfit-theme','light'); } catch(e){}
   }
   updateChartTheme();
 }
-(function(){
-  try {
-    if (localStorage.getItem('hulkfit-theme')==='light') {
-      document.getElementById('theme-icon').textContent='🌙';
-    }
-  } catch(e){}
-})();
 
 // ── Chart ──
 const chartData = {{ forecast.chart | tojson }};

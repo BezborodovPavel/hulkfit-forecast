@@ -44,6 +44,13 @@ body{
 }
 [data-theme=light] .theme-btn{background:rgba(255,255,255,.8);}
 .theme-btn:hover{border-color:var(--green);color:var(--green);}
+.theme-btn .ico{color:var(--green);}
+.ico-moon{display:none;}
+[data-theme=light] .ico-sun{display:none;}
+[data-theme=light] .ico-moon{display:inline;}
+/* Шапка на телефоне: логотип и название не сжимаются, подпись скрыта */
+.header img,.logo{flex:none;white-space:nowrap;}
+@media(max-width:600px){.logo-sub{display:none;}.header-right{gap:4px;}.header-link{padding:6px 6px;}}
 
 .main{max-width:1200px;margin:0 auto;padding:28px 32px 60px;}
 .page-title{font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--green);text-transform:uppercase;line-height:.95;}
@@ -60,7 +67,7 @@ body{
 .hint{font-size:12px;color:var(--text-dim);}
 .cur-row{display:grid;grid-template-columns:minmax(220px,1fr) 2fr;gap:16px;padding:10px 0;border-bottom:1px solid var(--border2);}
 .cur-row:last-of-type{border-bottom:none;}
-.cur-label{font-size:12px;color:var(--text-dim);}
+.cur-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}
 .cur-val{font-weight:600;}
 .cur-val div + div{margin-top:2px;}
 .src{margin-top:12px;font-size:12px;color:var(--text-dim);}
@@ -82,8 +89,8 @@ body{
 .seg-opt input{margin-top:3px;accent-color:var(--green);flex:none;}
 .seg-opt .nm{flex:1;}
 .seg-opt .meta{font-size:11px;color:var(--text-muted);white-space:nowrap;}
-.seg-opt.dup{cursor:not-allowed;opacity:.55;}
-.seg-opt.dup .meta{color:var(--orange);}
+.seg-opt.dup{cursor:not-allowed;opacity:.4;}
+.seg-opt.dup .meta{color:var(--text-muted);}
 .seg-picked{font-size:12px;color:var(--text-dim);margin-top:8px;}
 .seg-picked b{color:var(--green);font-weight:600;}
 .dept-select{
@@ -92,14 +99,18 @@ body{
 }
 .actions{display:flex;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap;}
 .btn{
-  background:var(--green);color:#0a0a0a;border:none;border-radius:8px;padding:9px 22px;
-  font-family:inherit;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;
+  background:var(--green);color:#0a0a0a;border:none;border-radius:6px;padding:9px 22px;
+  font-family:"Oswald","Arial Black",Arial,sans-serif;font-weight:700;font-size:13px;
+  letter-spacing:1px;text-transform:uppercase;cursor:pointer;
 }
-.btn:disabled{opacity:.5;cursor:default;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
 .msg{font-size:13px;}
 .msg.ok{color:var(--green);}
-.msg.err{color:var(--red);}
-.err-box{border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px;}
+.msg.err{color:var(--text);}
+.msg.err::before,.err-box::before,.warn::before{content:'ОШИБКА: ';font-weight:700;color:var(--green);}
+.err-box{border:1px solid var(--green);border-radius:4px;padding:10px 14px;color:var(--text);font-size:13px;}
+.warn{color:var(--text);}
+.warn::before{content:'ВНИМАНИЕ: ';}
 .log-table{width:100%;border-collapse:collapse;font-size:13px;}
 .log-table th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--border2);}
 .log-table td{padding:8px 10px;border-bottom:1px solid var(--border2);vertical-align:top;}
@@ -107,9 +118,11 @@ body{
 .chg + .chg{margin-top:4px;}
 .chg .k{color:var(--text-dim);}
 footer{
-  border-top:1px solid var(--border);padding:16px 40px;font-size:11px;color:var(--text-muted);
-  display:flex;align-items:center;justify-content:space-between;margin-top:40px;gap:12px;flex-wrap:wrap;
+  background:#050505;color:#cccccc;margin-top:40px;padding:14px 40px;text-align:center;
+  font-family:"Oswald","Arial Black",Arial,sans-serif;font-weight:700;font-size:13px;
+  letter-spacing:1px;text-transform:uppercase;
 }
+[data-theme=light] footer{background:#e0e0e0;color:#222;}
 @media(max-width:900px){
   .grid-2{grid-template-columns:1fr;}
   .cur-row{grid-template-columns:1fr;gap:4px;}
@@ -131,7 +144,7 @@ footer{
   <div class="header-right">
     <a class="header-link" href="/forecast/">← Прогноз</a>
     <a class="header-link" href="/">Дашборды</a>
-    <button class="theme-btn" onclick="toggleTheme()" aria-label="Сменить тему"><span id="theme-icon">☀</span></button>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Сменить тему"><svg class="ico ico-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg><svg class="ico ico-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
   </div>
 </div>
 
@@ -149,10 +162,7 @@ footer{
   <div class="card" id="log"><div class="hint">Загрузка…</div></div>
 </div>
 
-<footer>
-  <div>Нижний Тагил, Октябрьской Революции, 66 (5 этаж) · 217-300 · hulk.fit</div>
-  <div>dashboard.hulk.fit/forecast/settings</div>
-</footer>
+<footer>Нижний Тагил, Октябрьской Революции, 66 (5 этаж) · 217-300 · hulk.fit</footer>
 
 <script>
 const API = '/forecast/api/settings';
@@ -216,7 +226,7 @@ function renderList(kind) {
   document.getElementById('list-' + kind).innerHTML = html;
   document.getElementById('picked-' + kind).innerHTML = picked.size
     ? 'Выбрано: ' + [...picked].map(n => `<b>${escH(n)}</b>`).join(', ')
-    : '<span style="color:var(--red)">Ничего не выбрано</span>';
+    : '<span class="warn">ничего не выбрано</span>';
 }
 
 function renderEdit() {
@@ -328,13 +338,11 @@ async function save() {
 }
 
 function toggleTheme() {
-  const root = document.getElementById('html-root'), icon = document.getElementById('theme-icon');
+  const root = document.getElementById('html-root');
   const isLight = root.getAttribute('data-theme') === 'light';
-  if (isLight) { root.removeAttribute('data-theme'); icon.textContent = '☀'; }
-  else { root.setAttribute('data-theme', 'light'); icon.textContent = '🌙'; }
+  if (isLight) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', 'light');
   try { localStorage.setItem('hulkfit-theme', isLight ? 'dark' : 'light'); } catch (e) {}
 }
-try { if (localStorage.getItem('hulkfit-theme') === 'light') document.getElementById('theme-icon').textContent = '🌙'; } catch (e) {}
 init();
 </script>
 </body>

@@ -399,6 +399,8 @@ async def create_kaiten_card(request: Request):
     else:
         try:
             ctx = await _build_context(target_month)
+        except queries.SettingsError as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=503)
         except Exception as e:
             log.error("Kaiten card: 1C fetch failed: %s", e)
             return JSONResponse({"ok": False, "error": f"Нет данных из 1С: {e}"}, status_code=503)
