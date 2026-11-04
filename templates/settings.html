@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru" id="html-root">
+<head>
+<meta charset="UTF-8">
+<script>!function(){try{var t=localStorage.getItem('hulkfit-theme');if(t==='light')document.getElementById('html-root').setAttribute('data-theme','light')}catch(e){}}()</script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Настройки прогноза — HULK.FIT</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --dark:#0a0a0a;--card:#111;--card2:#161616;--border:#222;--border2:#2a2a2a;
+  --text:#e8e8e8;--text-dim:#888;--text-muted:#555;
+  --green:#39FF14;--green-glow:rgba(57,255,20,.15);--red:#ff6b6b;--orange:#ffa94d;
+  --font-display:"Bebas Neue","Oswald","Arial Black",Impact,sans-serif;
+}
+[data-theme=light]{
+  --dark:#f0f0f0;--card:#ffffff;--card2:#f8f8f8;--border:#ddd;--border2:#e5e5e5;
+  --text:#111;--text-dim:#555;--text-muted:#999;
+  --green:#00AC00;--green-glow:rgba(0,172,0,.15);--red:#cc2222;--orange:#b06000;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--dark);color:var(--text);font-family:'Exo 2',sans-serif;
+  min-height:100vh;font-size:14px;line-height:1.5;
+  background-image:radial-gradient(ellipse 70% 40% at 50% 0%,var(--green-glow),transparent);
+}
+.header{
+  background:linear-gradient(135deg,#0d0d0d,#0f1a0a);border-bottom:2px solid var(--green);
+  padding:14px 40px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+[data-theme=light] .header{background:linear-gradient(135deg,#eaf5e5,#f2f2f2);}
+.logo{font-family:var(--font-display);font-size:26px;letter-spacing:3px;color:#fff;line-height:1;}
+[data-theme=light] .logo{color:#111;}
+.logo span{color:var(--green);}
+.logo-sub{font-size:9px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.header-link{font-size:12px;color:var(--text-dim);text-decoration:none;letter-spacing:1px;padding:6px 10px;border-radius:6px;}
+.header-link:hover{color:var(--green);}
+.theme-btn{
+  background:rgba(10,10,10,.6);border:1px solid var(--border);color:var(--text-dim);
+  border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;
+}
+[data-theme=light] .theme-btn{background:rgba(255,255,255,.8);}
+.theme-btn:hover{border-color:var(--green);color:var(--green);}
+
+.main{max-width:1200px;margin:0 auto;padding:28px 32px 60px;}
+.page-title{font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--green);text-transform:uppercase;line-height:.95;}
+.page-sub{font-size:13px;color:var(--green);margin-top:4px;}
+.section-title{
+  font-family:var(--font-display);font-size:20px;letter-spacing:2px;color:var(--text);text-transform:uppercase;line-height:.95;
+  margin:32px 0 14px;display:flex;align-items:center;gap:10px;
+}
+.section-title::before{content:'';display:block;width:4px;height:20px;background:var(--green);border-radius:2px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;}
+.card + .card,.grid-2 + .card{margin-top:20px;}
+.grid-2 > .card{margin-top:0;}
+.card-title{text-transform:uppercase;font-family:var(--font-display);font-size:16px;letter-spacing:2px;color:var(--text);margin-bottom:12px;}
+.hint{font-size:12px;color:var(--text-dim);}
+.cur-row{display:grid;grid-template-columns:minmax(220px,1fr) 2fr;gap:16px;padding:10px 0;border-bottom:1px solid var(--border2);}
+.cur-row:last-of-type{border-bottom:none;}
+.cur-label{font-size:12px;color:var(--text-dim);}
+.cur-val{font-weight:600;}
+.cur-val div + div{margin-top:2px;}
+.src{margin-top:12px;font-size:12px;color:var(--text-dim);}
+.src b{color:var(--text);font-weight:600;}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.field-label{display:block;font-size:11px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+.search{
+  width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);padding:8px 12px;font-family:inherit;font-size:13px;margin-bottom:8px;
+}
+.search:focus,.dept-select:focus{outline:none;border-color:var(--green);}
+.only-cards input{accent-color:var(--green);}
+.only-cards{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);margin-bottom:8px;cursor:pointer;}
+.seg-list{max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--card2);}
+.seg-opt{display:flex;align-items:flex-start;gap:10px;padding:7px 10px;border-bottom:1px solid var(--border2);cursor:pointer;font-size:13px;}
+.seg-opt:last-child{border-bottom:none;}
+.seg-opt:hover{background:var(--green-glow);}
+.seg-opt input{margin-top:3px;accent-color:var(--green);flex:none;}
+.seg-opt .nm{flex:1;}
+.seg-opt .meta{font-size:11px;color:var(--text-muted);white-space:nowrap;}
+.seg-opt.dup{cursor:not-allowed;opacity:.55;}
+.seg-opt.dup .meta{color:var(--orange);}
+.seg-picked{font-size:12px;color:var(--text-dim);margin-top:8px;}
+.seg-picked b{color:var(--green);font-weight:600;}
+.dept-select{
+  width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);padding:8px 12px;font-family:inherit;font-size:13px;
+}
+.actions{display:flex;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap;}
+.btn{
+  background:var(--green);color:#0a0a0a;border:none;border-radius:8px;padding:9px 22px;
+  font-family:inherit;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;
+}
+.btn:disabled{opacity:.5;cursor:default;}
+.msg{font-size:13px;}
+.msg.ok{color:var(--green);}
+.msg.err{color:var(--red);}
+.err-box{border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px;}
+.log-table{width:100%;border-collapse:collapse;font-size:13px;}
+.log-table th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--border2);}
+.log-table td{padding:8px 10px;border-bottom:1px solid var(--border2);vertical-align:top;}
+.log-table td.when{white-space:nowrap;color:var(--text-dim);}
+.chg + .chg{margin-top:4px;}
+.chg .k{color:var(--text-dim);}
+footer{
+  border-top:1px solid var(--border);padding:16px 40px;font-size:11px;color:var(--text-muted);
+  display:flex;align-items:center;justify-content:space-between;margin-top:40px;gap:12px;flex-wrap:wrap;
+}
+@media(max-width:900px){
+  .grid-2{grid-template-columns:1fr;}
+  .cur-row{grid-template-columns:1fr;gap:4px;}
+  .main{padding:20px 16px 40px;}
+  .header,footer{padding-left:16px;padding-right:16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <img src="/logo.png" alt="Hulk Fit" style="width:52px;height:52px;object-fit:contain;">
+    <div>
+      <div class="logo">HULK <span>FIT</span></div>
+      <div class="logo-sub">Нижний Тагил · Прогноз выручки</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <a class="header-link" href="/forecast/">← Прогноз</a>
+    <a class="header-link" href="/">Дашборды</a>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Сменить тему"><span id="theme-icon">☀</span></button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="page-title">Настройки прогноза</div>
+  <div class="page-sub">Отборы данных 1С: сегменты номенклатуры и подразделения</div>
+
+  <div class="section-title">Текущие отборы</div>
+  <div class="card" id="current"><div class="hint">Загрузка…</div></div>
+
+  <div class="section-title">Изменить отборы</div>
+  <div id="edit"><div class="card"><div class="hint">Загрузка…</div></div></div>
+
+  <div class="section-title">Журнал изменений</div>
+  <div class="card" id="log"><div class="hint">Загрузка…</div></div>
+</div>
+
+<footer>
+  <div>Нижний Тагил, Октябрьской Революции, 66 (5 этаж) · 217-300 · hulk.fit</div>
+  <div>dashboard.hulk.fit/forecast/settings</div>
+</footer>
+
+<script>
+const API = '/forecast/api/settings';
+const LIST_KINDS = ['cards', 'pt'];
+const DEPT_KINDS = ['dept_cards', 'dept_fitness'];
+const KINDS = LIST_KINDS.concat(DEPT_KINDS);
+const S = { data: null, opts: null, pick: {}, only: { cards: true, pt: false }, q: { cards: '', pt: '' }, msg: '', msgOk: false, busy: false };
+
+function escH(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function fmtDT(iso) {
+  if (!iso) return '';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]} ${m[4]}:${m[5]}` : escH(iso);
+}
+function asList(v) { return Array.isArray(v) ? v : (v ? [v] : []); }
+async function getJSON(url, opts) {
+  const r = await fetch(url, Object.assign({ credentials: 'same-origin' }, opts || {}));
+  if (r.status === 401) { location.href = '/login'; throw new Error('401'); }
+  let body = null;
+  try { body = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error((body && body.detail) || ('HTTP ' + r.status));
+  return body;
+}
+
+function renderCurrent() {
+  const d = S.data, s = d.settings;
+  let h = '';
+  for (const k of KINDS) {
+    h += `<div class="cur-row"><div class="cur-label">${escH(d.labels[k])}</div>` +
+         `<div class="cur-val">${asList(s[k]).map(n => `<div>${escH(n)}</div>`).join('')}</div></div>`;
+  }
+  h += s.source === 'default'
+    ? '<div class="src">Действуют значения по умолчанию.</div>'
+    : `<div class="src">Изменено: <b>${escH(s.updated_by)}</b>, ${fmtDT(s.updated_at)}</div>`;
+  document.getElementById('current').innerHTML = h;
+}
+
+function segOptions(kind) {
+  const q = S.q[kind].trim().toLowerCase();
+  const picked = S.pick[kind];
+  return S.opts.segments.filter(sg =>
+    picked.has(sg.name) ||
+    ((!S.only[kind] || (kind === 'cards' ? sg.cards > 0 : sg.cards === 0)) &&
+     (!q || sg.name.toLowerCase().includes(q))));
+}
+
+function renderList(kind) {
+  const rows = segOptions(kind);
+  const picked = S.pick[kind];
+  rows.sort((a, b) => (picked.has(b.name) - picked.has(a.name)) || a.name.localeCompare(b.name, 'ru'));
+  const html = rows.length ? rows.map(sg => {
+    const dup = sg.dups > 1;
+    const meta = dup ? `${sg.dups} сегмента с таким именем` :
+      (kind === 'cards' ? `карт: ${sg.cards}` : `позиций: ${sg.items}`);
+    return `<label class="seg-opt${dup ? ' dup' : ''}" title="${dup ? 'Имя задвоено в 1С — выбрать нельзя' : ''}">` +
+      `<input type="checkbox" data-kind="${kind}" value="${escH(sg.name)}"${picked.has(sg.name) ? ' checked' : ''}${dup ? ' disabled' : ''}>` +
+      `<span class="nm">${escH(sg.name)}</span><span class="meta">${meta}</span></label>`;
+  }).join('') : '<div class="seg-opt"><span class="nm hint">Ничего не найдено</span></div>';
+  document.getElementById('list-' + kind).innerHTML = html;
+  document.getElementById('picked-' + kind).innerHTML = picked.size
+    ? 'Выбрано: ' + [...picked].map(n => `<b>${escH(n)}</b>`).join(', ')
+    : '<span style="color:var(--red)">Ничего не выбрано</span>';
+}
+
+function renderEdit() {
+  const d = S.data, box = document.getElementById('edit');
+  if (!d.is_admin) {
+    box.innerHTML = `<div class="card"><div class="hint">Менять отборы может администратор портала. ` +
+      `Пользователь: ${escH(d.user || 'не определён')}.</div></div>`;
+    return;
+  }
+  if (!S.opts) { box.innerHTML = '<div class="card"><div class="hint">Загружаю списки из 1С…</div></div>'; return; }
+  const onlyText = { cards: 'только сегменты с клубными картами', pt: 'скрыть сегменты с клубными картами' };
+  let h = '<div class="grid-2">';
+  for (const k of LIST_KINDS) {
+    h += `<div class="card"><label class="field-label" for="q-${k}">${escH(d.labels[k])}</label>` +
+      `<input type="search" class="search" id="q-${k}" placeholder="Поиск сегмента" value="${escH(S.q[k])}" oninput="S.q['${k}']=this.value;renderList('${k}')">` +
+      `<label class="only-cards"><input type="checkbox" ${S.only[k] ? 'checked' : ''} onchange="S.only['${k}']=this.checked;renderList('${k}')"> ${onlyText[k]}</label>` +
+      `<div class="seg-list" id="list-${k}" role="group" aria-label="${escH(d.labels[k])}"></div>` +
+      `<div class="seg-picked" id="picked-${k}"></div></div>`;
+  }
+  h += '</div><div class="card"><div class="grid-2">';
+  for (const k of DEPT_KINDS) {
+    h += `<div><label class="field-label" for="sel-${k}">${escH(d.labels[k])}</label>` +
+      `<select class="dept-select" id="sel-${k}" onchange="S.pick['${k}']=this.value">` +
+      S.opts.departments.map(n => `<option value="${escH(n)}"${S.pick[k] === n ? ' selected' : ''}>${escH(n)}</option>`).join('') +
+      '</select></div>';
+  }
+  h += '</div><div class="actions">' +
+    `<button class="btn" id="save-btn" onclick="save()"${S.busy ? ' disabled' : ''}>Сохранить</button>` +
+    `<span class="msg ${S.msgOk ? 'ok' : 'err'}">${escH(S.msg)}</span></div>` +
+    '<div class="hint" style="margin-top:10px">Сохранение проверяет выбор по свежему списку 1С. Прогноз текущего месяца пересчитается при следующем открытии; ' +
+    'сохранённые снимки прошлых месяцев не меняются.</div></div>';
+  box.innerHTML = h;
+  for (const k of LIST_KINDS) renderList(k);
+  box.querySelectorAll('.seg-list').forEach(el => el.addEventListener('change', e => {
+    const cb = e.target;
+    if (!cb.dataset || !cb.dataset.kind) return;
+    const set = S.pick[cb.dataset.kind];
+    cb.checked ? set.add(cb.value) : set.delete(cb.value);
+    renderList(cb.dataset.kind);
+  }));
+}
+
+function renderLog(rows) {
+  const box = document.getElementById('log');
+  if (!rows.length) { box.innerHTML = '<div class="hint">Изменений ещё не было.</div>'; return; }
+  const labels = S.data.labels;
+  let h = '<table class="log-table"><thead><tr><th>Когда</th><th>Кто</th><th>Что изменено</th></tr></thead><tbody>';
+  for (const r of rows) {
+    const ch = KINDS.filter(k => JSON.stringify(asList(r.before && r.before[k])) !== JSON.stringify(asList(r.after && r.after[k])))
+      .map(k => `<div class="chg"><span class="k">${escH(labels[k])}:</span> было «${escH(asList(r.before[k]).join('», «'))}», ` +
+                `стало «${escH(asList(r.after[k]).join('», «'))}»</div>`).join('') || '<span class="hint">без изменений</span>';
+    h += `<tr><td class="when">${fmtDT(r.at)}</td><td>${escH(r.user)}${r.ip ? `<div class="hint">${escH(r.ip)}</div>` : ''}</td><td>${ch}</td></tr>`;
+  }
+  document.getElementById('log').innerHTML = h + '</tbody></table>';
+}
+
+function resetPick() {
+  const s = S.data.settings;
+  for (const k of LIST_KINDS) S.pick[k] = new Set(asList(s[k]));
+  for (const k of DEPT_KINDS) S.pick[k] = s[k];
+}
+
+async function loadLog() {
+  try { renderLog((await getJSON(API + '/log?limit=30')).rows || []); }
+  catch (e) { document.getElementById('log').innerHTML = `<div class="err-box">${escH(e.message)}</div>`; }
+}
+
+async function init() {
+  try {
+    S.data = await getJSON(API);
+  } catch (e) {
+    const err = `<div class="err-box">Не удалось загрузить настройки: ${escH(e.message)}</div>`;
+    document.getElementById('current').innerHTML = err;
+    document.getElementById('edit').innerHTML = '';
+    return;
+  }
+  resetPick();
+  renderCurrent();
+  renderEdit();
+  loadLog();
+  if (S.data.is_admin) {
+    try {
+      S.opts = await getJSON(API + '/options');
+      renderEdit();
+    } catch (e) {
+      document.getElementById('edit').innerHTML = `<div class="err-box">${escH(e.message)}</div>`;
+    }
+  }
+}
+
+async function save() {
+  const body = {
+    cards: [...S.pick.cards], pt: [...S.pick.pt],
+    dept_cards: S.pick.dept_cards, dept_fitness: S.pick.dept_fitness,
+  };
+  if (!body.cards.length || !body.pt.length) { S.msg = 'Выберите хотя бы один сегмент в каждом списке.'; S.msgOk = false; renderEdit(); return; }
+  S.busy = true; S.msg = 'Проверяю в 1С…'; S.msgOk = true; renderEdit();
+  try {
+    const res = await getJSON(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    S.data.settings = res.settings;
+    resetPick();
+    S.msg = 'Сохранено. Прогноз пересчитается при следующем открытии.'; S.msgOk = true;
+    renderCurrent();
+    loadLog();
+  } catch (e) {
+    S.msg = e.message; S.msgOk = false;
+  }
+  S.busy = false; renderEdit();
+}
+
+function toggleTheme() {
+  const root = document.getElementById('html-root'), icon = document.getElementById('theme-icon');
+  const isLight = root.getAttribute('data-theme') === 'light';
+  if (isLight) { root.removeAttribute('data-theme'); icon.textContent = '☀'; }
+  else { root.setAttribute('data-theme', 'light'); icon.textContent = '🌙'; }
+  try { localStorage.setItem('hulkfit-theme', isLight ? 'dark' : 'light'); } catch (e) {}
+}
+try { if (localStorage.getItem('hulkfit-theme') === 'light') document.getElementById('theme-icon').textContent = '🌙'; } catch (e) {}
+init();
+</script>
+</body>
+</html>

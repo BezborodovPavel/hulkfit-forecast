@@ -31,15 +31,6 @@ OWNER_ID = int(os.environ.get("KAITEN_FORECAST_OWNER_ID", 510026))
 CARD_BASE_URL = "https://hulk.kaiten.ru"
 DASHBOARD_URL = "https://dashboard.hulk.fit"
 
-# Порядок вывода направлений в таблице плана
-DEPT_ORDER = [
-    "Фитнес-услуги",
-    "Бар",
-    "СПА-услуги",
-    "Солярий",
-    "Доп. услуги",
-    "Товары",
-]
 
 
 def _fmt(v: float) -> str:
@@ -62,17 +53,13 @@ def build_description(forecast: dict[str, Any], uplift_pct: float = 0.0) -> str:
     """Тело карточки: план по направлениям и отделам."""
     k = 1 + uplift_pct / 100.0
 
-    rows: list[tuple[str, float]] = [("Клубные карты", forecast["cards_total_k"] * k)]
+    rows: list[tuple[str, float]] = [(forecast.get("dept_cards") or "Клубные карты", forecast["cards_total_k"] * k)]
 
+    # Фитнес-услуги (подразделение из настроек) первыми, прочие — по убыванию плана
     depts: dict[str, float] = forecast.get("depts", {}) or {}
-    seen = set()
-    for name in DEPT_ORDER:
-        if name in depts:
-            rows.append((name, depts[name] * k))
-            seen.add(name)
-    for name, value in depts.items():
-        if name not in seen:
-            rows.append((name, value * k))
+    fitness = forecast.get("dept_fitness") or "Фитнес-услуги"
+    for name in sorted(depts, key=lambda n: (n != fitness, -depts[n])):
+        rows.append((name, depts[name] * k))
 
     total = sum(v for _, v in rows)
 

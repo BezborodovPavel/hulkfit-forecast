@@ -48,15 +48,6 @@ ANOMALY_PERIODS_COMP_V = {
     "2025-09", "2025-10", "2025-11", "2025-12",
 }
 
-# Сегменты ПТ-буфера — по подстроке, как в Q6 (queries.py): числитель и знаменатель
-# runway должны брать один и тот же набор. Точные имена ломались при переименовании
-# сегментов в 1С (с сентября 2026 буфер показывал 11 сессий вместо ~750).
-PT_SEGMENT_PATTERNS = ("Персональная тренировка", "Дуэт", "Трио", "Платная группа")
-
-
-def is_pt_segment(name: str) -> bool:
-    return any(p.lower() in (name or "").lower() for p in PT_SEGMENT_PATTERNS)
-
 MONTH_NAMES_RU = {
     1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель",
     5: "Май", 6: "Июнь", 7: "Июль", 8: "Август",
@@ -223,10 +214,11 @@ def _safe_mean(values: list[float]) -> float:
 def calc_other_depts(
     sales: list[dict],
     target_month: date,
+    dept_cards: str,
 ) -> dict[str, float]:
     """
     Средняя выручка по каждому отделу за последние 3 доступных месяца
-    (исключая аномальные периоды и Клубные карты).
+    (исключая аномальные периоды и подразделение клубных карт из настроек).
     Месяцы-выбросы (>1.5× медианы) автоматически исключаются.
     Возвращает словарь {отдел: средняя выручка тыс. руб.} без сезонных поправок.
     """
@@ -235,7 +227,7 @@ def calc_other_depts(
 
     for row in sales:
         dept = row["dept"]
-        if not dept or "карт" in dept.lower():
+        if not dept or dept == dept_cards:
             continue
         mk = _month_key(row["month"])
         if mk in excluded:
@@ -272,7 +264,8 @@ def calc_fitness_seasonal(avg_k: float, month: int, pt_runway: float) -> float:
 # ── ПТ-буфер ──────────────────────────────────────────────────────────────────
 
 def calc_pt_buffer(pt_rows: list[dict], consumption: float | None = None) -> dict[str, Any]:
-    sessions = sum(row["sessions"] for row in pt_rows if is_pt_segment(row["segment"]))
+    # Отбор ПТ сделан в Q4 по сегментам из настроек — тот же набор, что в Q6
+    sessions = sum(row["sessions"] for row in pt_rows)
     eff_consumption = consumption if (consumption and consumption > 0) else PT_CONSUMPTION_PER_MONTH
     runway = sessions / eff_consumption
     warning = runway > PT_BUFFER_RUNWAY_THRESHOLD
@@ -281,13 +274,13 @@ def calc_pt_buffer(pt_rows: list[dict], consumption: float | None = None) -> dic
         "consumption": round(eff_consumption),
         "runway": round(runway, 2),
         "warning": warning,
-        "rows": sorted([r for r in pt_rows if r["sessions"] >= 1 and "тренажер" in r["segment"].lower()], key=lambda r: r["sessions"], reverse=True),
+        "rows": sorted([r for r in pt_rows if r["sessions"] >= 1], key=lambda r: r["sessions"], reverse=True),
     }
 
 
 # ── Исторические данные для графика ──────────────────────────────────────────
 
-def build_chart_data(sales: list[dict], target_month: date) -> dict[str, Any]:
+def build_chart_data(sales: list[dict], target_month: date, dept_cards: str, dept_fitness: str) -> dict[str, Any]:
     """Строит данные для графика выручки по отделам (последние 12 месяцев)."""
     from collections import defaultdict
 
@@ -298,23 +291,24 @@ def build_chart_data(sales: list[dict], target_month: date) -> dict[str, Any]:
         months_seq.append(m)
         labels.append(f"{MONTH_SHORT_RU[m.month]} {str(m.year)[2:]}")
 
-    dept_order = ["Клубные карты", "Фитнес-услуги", "Бар", "СПА-услуги", "Солярий", "Доп. услуги", "Товары"]
     by_month_dept: dict[str, dict[str, float]] = defaultdict(dict)
+    totals: dict[str, float] = defaultdict(float)
 
     for row in sales:
         mk = _month_key(row["month"])
         by_month_dept[mk][row["dept"]] = row["revenue"] / 1000
+        totals[row["dept"]] += row["revenue"]
+
+    # Карты и фитнес-услуги (из настроек) первыми, прочие отделы — по убыванию выручки
+    others = sorted((d for d in totals if d and d not in (dept_cards, dept_fitness)),
+                    key=lambda d: totals[d], reverse=True)
+    dept_order = [dept_cards, dept_fitness] + others
+    palette = ["#ffa94d", "#cc99ff", "#ffdd57", "#80c8c8", "#aaaaaa", "#ff6b6b", "#e0e0e0"]
+    colors = {dept_cards: "#39FF14", dept_fitness: "#6eb3ff"}
+    for i, d in enumerate(others):
+        colors[d] = palette[i % len(palette)]
 
     datasets = []
-    colors = {
-        "Клубные карты": "#39FF14",
-        "Фитнес-услуги": "#6eb3ff",
-        "Бар": "#ffa94d",
-        "СПА-услуги": "#cc99ff",
-        "Солярий": "#ffdd57",
-        "Доп. услуги": "#80c8c8",
-        "Товары": "#aaaaaa",
-    }
     for dept in dept_order:
         data = []
         for m in months_seq:
@@ -341,8 +335,10 @@ def build_forecast(
     avg_check: dict[str, float],
     ai_results: dict,
     pt_consumption: float | None = None,
+    dept_cards: str = "Клубные карты",
+    dept_fitness: str = "Фитнес-услуги",
 ) -> dict[str, Any]:
-    """Собирает итоговую структуру данных для шаблона."""
+    """Собирает итоговую структуру данных для шаблона. Подразделения — из настроек."""
     m = target_month.month
 
     # Средний чек: актуальный vs константа
@@ -374,24 +370,24 @@ def build_forecast(
     pt = calc_pt_buffer(pt_rows, consumption=pt_consumption)
 
     # Прочие отделы
-    depts = calc_other_depts(sales, target_month)
-    fitness_avg = depts.get("Фитнес-услуги", 0)
+    depts = calc_other_depts(sales, target_month, dept_cards)
+    fitness_avg = depts.get(dept_fitness, 0)
     fitness = calc_fitness_seasonal(fitness_avg, m, pt["runway"])
-    depts["Фитнес-услуги"] = fitness
+    depts[dept_fitness] = fitness
 
     # Сезонный коэффициент на все прочие отделы (кроме Фитнес — у него своя формула)
     s = SEASON_COEFF_A[m]
     for dept in list(depts.keys()):
-        if dept != "Фитнес-услуги":
+        if dept != dept_fitness:
             depts[dept] = round(depts[dept] * s, 1)
 
     # Итог
     cards_total = comp_a["revenue_k"] + comp_b["revenue_k"] + comp_c_revenue
-    other_total = sum(v for k, v in depts.items() if k != "Фитнес-услуги")
+    other_total = sum(v for k, v in depts.items() if k != dept_fitness)
     total = cards_total + fitness + other_total
 
     # Данные для графика
-    chart = build_chart_data(sales, target_month)
+    chart = build_chart_data(sales, target_month, dept_cards, dept_fitness)
 
     return {
         "target_month": target_month.strftime("%Y-%m"),
@@ -414,4 +410,6 @@ def build_forecast(
         "ai_comment": ai_results.get("comment"),
         "chart": chart,
         "season_coeff": SEASON_COEFF_A[m],
+        "dept_cards": dept_cards,
+        "dept_fitness": dept_fitness,
     }

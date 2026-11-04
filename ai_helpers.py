@@ -178,6 +178,7 @@ def run_ai_analysis(
     month: int,
     month_name: str,
     total_k: float,
+    dept_fitness: str = "Фитнес-услуги",
 ) -> dict[str, Any]:
     """
     Запускает AI-анализ последовательно.
@@ -213,7 +214,7 @@ def run_ai_analysis(
         comp_c_k=comp_c_k,
         base=comp_a_data.get("base", {}),
         renewal_rate=renewal_rate,
-        fitness_k=depts.get("Фитнес-услуги", 0),
+        fitness_k=depts.get(dept_fitness, 0),
         runway=pt.get("runway", 0),
         month=month,
         total_k=total_k,
