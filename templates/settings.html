@@ -35,7 +35,7 @@ body{
 .logo span{color:var(--green);}
 .logo-sub{font-size:9px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
 .header-right{display:flex;align-items:center;gap:12px;}
-.header-link{font-size:12px;color:var(--text-dim);text-decoration:none;letter-spacing:1px;padding:6px 10px;border-radius:6px;}
+.header-link{white-space:nowrap;font-size:12px;color:var(--text-dim);text-decoration:none;letter-spacing:1px;padding:6px 10px;border-radius:6px;}
 .header-link:hover{color:var(--green);}
 .theme-btn{
   background:rgba(10,10,10,.6);border:1px solid var(--border);color:var(--text-dim);
@@ -107,7 +107,7 @@ body{
 .msg{font-size:13px;}
 .msg.ok{color:var(--green);}
 .msg.err{color:var(--text);}
-.msg.err::before,.err-box::before,.warn::before{content:'ОШИБКА: ';font-weight:700;color:var(--green);}
+.msg.err:not(:empty)::before,.err-box::before,.warn::before{content:'ОШИБКА: ';font-weight:700;color:var(--green);}
 .err-box{border:1px solid var(--green);border-radius:4px;padding:10px 14px;color:var(--text);font-size:13px;}
 .warn{color:var(--text);}
 .warn::before{content:'ВНИМАНИЕ: ';}
