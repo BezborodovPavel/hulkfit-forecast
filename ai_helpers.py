@@ -205,7 +205,7 @@ def run_ai_analysis(
     # Аномалия лето 2024 — детерминированная: всегда применяем коэф. 0.5
     if comp_b_data.get("pool_anomaly"):
         results["pool_coefficient"] = 0.5
-        results["pool_note"] = "Коэффициент 0.5: аномальный пул (массовые истечения годовых карт лето 2024)"
+        results["pool_note"] = "Коэффициент 0,5: аномальный пул (массовые истечения годовых карт лето 2024)"
 
     # 4. Риски
     risks = ai_generate_risks(

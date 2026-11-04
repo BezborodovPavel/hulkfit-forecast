@@ -31,7 +31,7 @@
   --chart-grid:#e0e0e0;--chart-label:#555555;
   --logo-white:none;--logo-dark:block;--ico-sun:none;--ico-moon:inline;
 }}
-:root[data-theme=light]{
+[data-theme="light"]{
   --bg:#f2f2f2;--surface:#ffffff;--surface-hover:#f7f7f7;--header-bg:#ffffff;
   --text:#111111;--text-muted:#555555;--accent:#00AC00;--accent-rgb:0,172,0;
   --border:#e0e0e0;--border-subtle:#ebebeb;
@@ -39,6 +39,18 @@
   --neutral-rgb:0,0,0;
   --chart-grid:#e0e0e0;--chart-label:#555555;
   --logo-white:none;--logo-dark:block;--ico-sun:none;--ico-moon:inline;
+}
+[data-theme="dark"]{
+  --bg:#0a0a0a;--surface:#111111;--surface-hover:#141414;--header-bg:#050505;
+  --text:#ffffff;--text-muted:#cccccc;--accent:#39FF14;--accent-rgb:57,255,20;
+  --border:#222222;--border-subtle:#1a1a1a;
+  --footer-bg:#050505;--footer-text:#cccccc;--card-shadow:none;
+  --neutral-rgb:255,255,255;
+  --chart-grid:#1a1a1a;--chart-label:#cccccc;
+  --font-display:"Bebas Neue","Oswald","Arial Black",Impact,sans-serif;
+  --font-ui:"Oswald","Arial Black",Arial,sans-serif;
+  --radius-sm:4px;--radius-md:6px;
+  --logo-white:block;--logo-dark:none;--ico-sun:inline;--ico-moon:none;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{

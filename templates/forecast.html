@@ -181,8 +181,8 @@ tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
       {% if forecast.comp_a.check_deviation_pct > 5 %}(отклонение {{ forecast.comp_a.check_deviation_pct|num(1) }} % от константы){% endif %}
       · Сезонный коэффициент: {{ forecast.season_coeff|num(2) }}
     </div>
-    {% if forecast.comp_a.check_note %}<div class="note"><b>Чек</b>{{ forecast.comp_a.check_note }}</div>{% endif %}
-    {% if forecast.comp_a.retention_note %}<div class="note"><b>Продления</b>{{ forecast.comp_a.retention_note }}</div>{% endif %}
+    {% if forecast.comp_a.check_note %}<div class="note"><b>Чек</b>{{ forecast.comp_a.check_note|rutext }}</div>{% endif %}
+    {% if forecast.comp_a.retention_note %}<div class="note"><b>Продления</b>{{ forecast.comp_a.retention_note|rutext }}</div>{% endif %}
   </div>
 
   <div class="card">
@@ -224,7 +224,7 @@ tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
     <div class="card-foot">
       Средний чек реактивации: <strong>8 933 ₽</strong> · Среднемесячный отток: {{ forecast.comp_b.avg_monthly_churn }} чел.
     </div>
-    {% if forecast.comp_b.pool_note %}<div class="note"><b>Пул</b>{{ forecast.comp_b.pool_note }}</div>{% endif %}
+    {% if forecast.comp_b.pool_note %}<div class="note"><b>Пул</b>{{ forecast.comp_b.pool_note|rutext }}</div>{% endif %}
   </div>
 </div>
 
@@ -305,18 +305,18 @@ tr.anomaly td{background:rgba(var(--accent-rgb),.06);}
 <div class="risks-grid">
   <div>
     <div class="risk-title down">▼ Риски снижения</div>
-    {% for item in forecast.risks.down %}<div class="risk-item">{{ item }}</div>{% endfor %}
+    {% for item in forecast.risks.down %}<div class="risk-item">{{ item|rutext }}</div>{% endfor %}
   </div>
   <div>
     <div class="risk-title up">▲ Возможности роста</div>
-    {% for item in forecast.risks.up %}<div class="risk-item up">{{ item }}</div>{% endfor %}
+    {% for item in forecast.risks.up %}<div class="risk-item up">{{ item|rutext }}</div>{% endfor %}
   </div>
 </div>
 {% endif %}
 
 {% if forecast.ai_comment %}
 <div class="section-heading"><span>Комментарий для карточки Kaiten</span></div>
-<div class="ai-comment">{{ forecast.ai_comment }}</div>
+<div class="ai-comment">{{ forecast.ai_comment|rutext }}</div>
 {% endif %}
 {% endblock %}
 

@@ -19,6 +19,7 @@
 from __future__ import annotations
 import asyncio
 import logging
+import re
 import os
 from calendar import monthrange
 from datetime import date
@@ -71,7 +72,24 @@ def fmt_period(month_key: str) -> str:
     return f"01.{m:02d}.{y} — {monthrange(y, m)[1]:02d}.{m:02d}.{y}"
 
 
+_DATE_RE = re.compile(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b")
+
+
+def ru_text(text: Any) -> str:
+    """Числа в тексте ИИ по дизайн-системе: разряды U+00A0, десятичная запятая,
+    неразрывный пробел перед % и ₽. Даты ДД.ММ.ГГГГ не трогаются."""
+    if not isinstance(text, str):
+        return text
+    dates: list[str] = []
+    t = _DATE_RE.sub(lambda m: dates.append(m.group(0)) or f"\x00{len(dates) - 1}\x00", text)
+    t = re.sub(r"(?<=\d) (?=\d{3}\b)", NBSP, t)
+    t = re.sub(r"(?<=\d)\.(?=\d)", ",", t)
+    t = re.sub(r"(?<=\d) ?(%|₽)", NBSP + r"\1", t)
+    return re.sub(r"\x00(\d+)\x00", lambda m: dates[int(m.group(1))], t)
+
+
 templates.env.filters["num"] = fmt_num
+templates.env.filters["rutext"] = ru_text
 templates.env.filters["period"] = fmt_period
 
 # Логотипы дизайн-системы (assets/logo-lockup-*.png, ужаты до 120 px) — отдаёт сам сервис,
