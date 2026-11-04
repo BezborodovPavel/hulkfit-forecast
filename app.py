@@ -27,7 +27,7 @@ from urllib.parse import unquote
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 
@@ -51,6 +51,20 @@ queries.set_mcp_url(MCP_URL)
 
 app = FastAPI(title="Hulk Fit Forecast", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory="templates")
+
+# Логотипы дизайн-системы (assets/logo-lockup-*.png, ужаты до 120 px) — отдаёт сам сервис,
+# nginx срезает префикс: /forecast/static/<имя> → /static/<имя>
+_STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+_STATIC_FILES = {"logo-lockup-white.png", "logo-lockup-dark.png"}
+
+
+@app.get("/static/{name}")
+@app.get("/forecast/static/{name}")
+async def static_file(name: str):
+    if name not in _STATIC_FILES:
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    return FileResponse(os.path.join(_STATIC_DIR, name), media_type="image/png",
+                        headers={"Cache-Control": "public, max-age=86400"})
 
 
 def _parse_month(month_str: str | None) -> date:
@@ -524,17 +538,25 @@ async def health():
 def _error_page(msg: str, settings_link: bool = False) -> str:
     import html
     msg = html.escape(msg)
-    extra = '<p style="margin-top:12px"><a href="/forecast/settings">Открыть настройки</a></p>' if settings_link else ""
+    extra = '<p><a href="/forecast/settings">Открыть настройки</a></p>' if settings_link else ""
     return f"""<!doctype html><html lang="ru" id="html-root"><head>
-<meta charset="utf-8"><title>Ошибка — Hulk Fit Forecast</title>
-<style>body{{background:#0a0a0a;color:#e8e8e8;font-family:sans-serif;
-display:flex;align-items:center;justify-content:center;min-height:100vh;}}
-.card{{background:#111;border:1px solid #333;border-top:3px solid #f55;
-border-radius:12px;padding:40px;max-width:560px;}}
-h2{{color:#f55;margin-bottom:16px;}}pre{{color:#aaa;font-size:13px;}}
-a{{color:#39FF14;}}</style></head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script>!function(){{try{{if(localStorage.getItem('hulkfit-theme')==='light')document.getElementById('html-root').setAttribute('data-theme','light')}}catch(e){{}}}}()</script>
+<title>Ошибка — прогноз выручки HULK.FIT</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
+<style>:root{{--bg:#0a0a0a;--surface:#111111;--text:#ffffff;--muted:#cccccc;--accent:#39FF14;--border:#222222;}}
+[data-theme=light]{{--bg:#f2f2f2;--surface:#ffffff;--text:#111111;--muted:#555555;--accent:#00AC00;--border:#e0e0e0;}}
+body{{margin:0;background:var(--bg);color:var(--text);font-family:"Oswald",Arial,sans-serif;
+display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;box-sizing:border-box;}}
+.card{{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);
+border-radius:4px;padding:28px;max-width:560px;width:100%;}}
+h2{{font-family:"Bebas Neue","Oswald",sans-serif;font-size:28px;line-height:.95;text-transform:uppercase;
+color:var(--accent);margin:0 0 14px;}}
+pre{{white-space:pre-wrap;font-family:inherit;font-size:14px;color:var(--muted);margin:0;}}
+a{{color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:13px;}}
+p{{margin:16px 0 0;}}</style></head>
 <body><div class="card">
 <h2>Ошибка загрузки данных</h2>
 <pre>{msg}</pre>
-<p style="margin-top:20px"><a href="/forecast/">Повторить</a></p>{extra}
+<p><a href="/forecast/">Повторить</a></p>{extra}
 </div></body></html>"""
